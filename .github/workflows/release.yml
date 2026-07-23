@@ -1,0 +1,57 @@
+name: Release
+
+# Every push to main bumps the patch version, tags it, and publishes the
+# extension to the VS Code Marketplace. The version-bump commit carries
+# "[skip ci]" so it does not trigger another release.
+#
+# Requires the repository secret VSCE_PAT: an Azure DevOps Personal Access
+# Token (Organization: "All accessible organizations", Scope: Marketplace >
+# Manage) for the "aiup" publisher.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish to VS Code Marketplace
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Bump patch version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version patch -m "chore: release v%s [skip ci]"
+
+      - name: Publish to Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx --yes @vscode/vsce publish -p "$VSCE_PAT"
+
+      - name: Push version bump and tag
+        run: git push --follow-tags

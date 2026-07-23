@@ -1,0 +1,96 @@
+{
+  "name": "aiup-navigator",
+  "displayName": "AI Unified Process Navigator",
+  "description": "Navigate between @UseCase-annotated Java test methods and their Markdown specs — with a live activity diagram of the Use Case you are editing.",
+  "version": "0.1.0",
+  "publisher": "aiup",
+  "license": "Apache-2.0",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AI-Unified-Process/vscode-plugin.git"
+  },
+  "homepage": "https://unifiedprocess.ai",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization",
+    "Testing"
+  ],
+  "keywords": [
+    "aiup",
+    "use case",
+    "requirements",
+    "traceability",
+    "activity diagram"
+  ],
+  "activationEvents": [
+    "onLanguage:java",
+    "onLanguage:markdown",
+    "workspaceContains:**/*UC-*.md"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aiup",
+          "title": "AIUP",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "aiup": [
+        {
+          "type": "webview",
+          "id": "aiup.diagram",
+          "name": "Diagram",
+          "contextualTitle": "AIUP Diagram"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "aiup.showDiagram",
+        "title": "AIUP: Show Activity Diagram"
+      },
+      {
+        "command": "aiup.copyPlantUml",
+        "title": "AIUP: Copy PlantUML Source",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "aiup.createUseCaseJava",
+        "title": "AIUP: Create UseCase.java Annotation"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "aiup.copyPlantUml",
+          "when": "view == aiup.diagram",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run check && node esbuild.mjs",
+    "check": "tsc --noEmit",
+    "build": "npm run check && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "test": "vitest run",
+    "package": "npm run build && npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.23.0",
+    "mermaid": "^11.4.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}

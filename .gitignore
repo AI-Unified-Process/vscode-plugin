@@ -1,0 +1,6 @@
+node_modules/
+dist/
+out/
+*.vsix
+media/mermaid.min.js
+.vscode-test/
