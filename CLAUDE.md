@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project
 
 VS Code extension (TypeScript) that adds CodeLens/Definition/Reference navigation between `@UseCase`-annotated Java
-test methods and their Markdown specs in AIUP (AI Unified Process) projects, plus a live activity diagram webview.
+test methods and their Markdown specs in AI Unified Process projects, plus a live activity diagram webview.
 It is the VS Code port of the sibling `../intellij-plugin` and must stay behaviour-compatible with it — the two
-plugins share the AIUP convention contract.
+plugins share the AI Unified Process convention contract.
 
 ## Common commands
 
@@ -25,7 +25,7 @@ npm run package      # build + vsce package -> aiup-navigator-<version>.vsix
 Two layers, split so the convention logic stays unit-testable without a VS Code host:
 
 - **`src/core/`** — pure TypeScript, no `vscode` imports, covered by vitest:
-    - `patterns.ts`: the AIUP convention contract (ID shapes, spec file names, heading regexes), ported 1:1 from the
+    - `patterns.ts`: the AI Unified Process convention contract (ID shapes, spec file names, heading regexes), ported 1:1 from the
       IntelliJ plugin's `UseCaseIndex`. Every component parses specs through these shared patterns — keep it that way.
     - `specSites.ts`: classifies a Markdown line into the five navigation sites (UC-ID line, BR site, H1 title,
       main-scenario heading, alt-flow heading) in the same precedence order as the IntelliJ line marker provider.

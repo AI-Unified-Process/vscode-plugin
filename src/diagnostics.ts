@@ -30,7 +30,7 @@ export class SpecDiagnostics implements vscode.Disposable {
           `Use Case ID '${annotation.id}' has no matching spec file`,
           vscode.DiagnosticSeverity.Warning,
         );
-        diagnostic.source = 'aiup';
+        diagnostic.source = 'AI Unified Process';
         diagnostic.code = 'use-case-id-without-spec';
         diagnostics.push(diagnostic);
       }

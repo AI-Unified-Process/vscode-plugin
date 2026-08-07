@@ -20,7 +20,7 @@
     "Testing"
   ],
   "keywords": [
-    "aiup",
+    "unified process",
     "use case",
     "requirements",
     "traceability",
@@ -37,7 +37,7 @@
       "activitybar": [
         {
           "id": "aiup",
-          "title": "AIUP",
+          "title": "AI Unified Process",
           "icon": "media/activity-icon.svg"
         }
       ]
@@ -48,23 +48,26 @@
           "type": "webview",
           "id": "aiup.diagram",
           "name": "Diagram",
-          "contextualTitle": "AIUP Diagram"
+          "contextualTitle": "AI Unified Process Diagram"
         }
       ]
     },
     "commands": [
       {
         "command": "aiup.showDiagram",
-        "title": "AIUP: Show Activity Diagram"
+        "category": "AI Unified Process",
+        "title": "Show Activity Diagram"
       },
       {
         "command": "aiup.copyPlantUml",
-        "title": "AIUP: Copy PlantUML Source",
+        "category": "AI Unified Process",
+        "title": "Copy PlantUML Source",
         "icon": "$(copy)"
       },
       {
         "command": "aiup.createUseCaseJava",
-        "title": "AIUP: Create UseCase.java Annotation"
+        "category": "AI Unified Process",
+        "title": "Create UseCase.java Annotation"
       }
     ],
     "menus": {

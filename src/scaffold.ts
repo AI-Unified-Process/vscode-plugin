@@ -41,7 +41,7 @@ export async function maybeOfferScaffold(
   }
   await context.workspaceState.update(OFFERED_KEY, true);
   const action = await vscode.window.showInformationMessage(
-    'This workspace has AIUP Use Case specs but no @UseCase annotation type. ' +
+    'This workspace has AI Unified Process Use Case specs but no @UseCase annotation type. ' +
       'Create UseCase.java so tests can reference their specs?',
     'Create UseCase.java',
   );

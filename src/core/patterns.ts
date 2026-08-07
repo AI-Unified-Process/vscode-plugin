@@ -1,5 +1,5 @@
 /**
- * The convention contract with AIUP consumer projects, ported from the
+ * The convention contract with AI Unified Process consumer projects, ported from the
  * IntelliJ plugin's `UseCaseIndex`. Every component that parses spec bodies
  * or file names shares these patterns so the accepted shapes stay in sync.
  *
@@ -8,7 +8,7 @@
  *    (System / Business Use Case).
  *  - Spec files are Markdown files declaring the ID via the body line
  *    `**Use Case ID:** UC-XXX` or via the H1 title (`# UC-001: Kunde suchen`,
- *    the German AIUP spec style). The ID in the file name is a fallback,
+ *    the German AI Unified Process spec style). The ID in the file name is a fallback,
  *    optionally preceded by a project prefix (`petclinic-UC-002-view.md`).
  *  - Test methods are annotated with `@UseCase(id = "UC-XXX", ...)`.
  */
@@ -18,7 +18,7 @@ export const USE_CASE_ID_LINE = /\*\*Use Case ID:\*\*\s*([SB]?UC-[A-Za-z0-9_-]+)
 
 /**
  * H1 title that declares the Use Case ID directly, e.g. `# UC-001: Kunde
- * suchen` — the German AIUP spec style, which has no `**Use Case ID:**`
+ * suchen` — the German AI Unified Process spec style, which has no `**Use Case ID:**`
  * body line. Only consulted as a fallback when no body line exists.
  */
 export const USE_CASE_TITLE = /^#[ \t]+([SB]?UC-[A-Za-z0-9_-]+)/m;

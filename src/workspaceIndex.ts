@@ -42,7 +42,7 @@ export interface TestClassRef {
 /**
  * In-memory index of the workspace's Markdown Use Case specs and
  * `@UseCase`-annotated Java files. Mirrors the IntelliJ plugin's
- * `UseCaseIndex`; for typical AIUP repos the full scan is fast because the
+ * `UseCaseIndex`; for typical AI Unified Process repos the full scan is fast because the
  * spec folder is small, so all lookups run against cached file contents.
  */
 export class WorkspaceIndex implements vscode.Disposable {

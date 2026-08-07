@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { generateMermaid, generatePlantUml, parse } from './core/activityDiagram';
 
 /**
- * The AIUP Diagram view: a live activity diagram of the Use Case spec in the
+ * The AI Unified Process Diagram view: a live activity diagram of the Use Case spec in the
  * active editor. The main flow forms the numbered spine, every Alternative
  * Flow branches at the step its trigger references and rejoins the flow after
  * its own steps. Rendered locally with a bundled Mermaid build — no external

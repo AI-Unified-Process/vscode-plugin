@@ -1,10 +1,10 @@
 # AI Unified Process Navigator for VS Code
 
 VS Code extension to navigate between `@UseCase`-annotated Java test methods and their Markdown specs in
-[AI Unified Process (AIUP)](https://unifiedprocess.ai) projects — with a live activity diagram of the
+[AI Unified Process](https://unifiedprocess.ai) projects — with a live activity diagram of the
 Use Case spec you are editing.
 
-This is the VS Code port of the [AIUP IntelliJ plugin](https://github.com/AI-Unified-Process/intellij-plugin)
+This is the VS Code port of the [AI Unified Process IntelliJ plugin](https://github.com/AI-Unified-Process/intellij-plugin)
 and follows the same conventions.
 
 ## Setup
@@ -27,18 +27,18 @@ public @interface UseCase {
 
 When the extension opens a workspace that contains Markdown Use Case specs but no `UseCase` annotation type, it shows
 a one-time notification with a **Create UseCase.java** action: pick a source root and a package and the file is
-scaffolded for you (also available any time via the **AIUP: Create UseCase.java Annotation** command).
+scaffolded for you (also available any time via the **AI Unified Process: Create UseCase.java Annotation** command).
 
 ## Features
 
 ### Activity diagram view
 
-The **AIUP Diagram** view (AIUP icon in the activity bar — drag it into the secondary side bar for the
+The **Diagram** view (AI Unified Process icon in the activity bar — drag it into the secondary side bar for the
 IntelliJ-style layout) shows a live activity diagram of the Use Case spec in the active editor: the main flow forms
 the numbered spine, and every Alternative Flow branches at the step its trigger references (e.g. `(Schritt 3)` /
 `(step 3)`) and rejoins the flow after its own steps. The diagram updates as you type (debounced) and is rendered
 entirely locally with a bundled Mermaid build — no external rendering service, the spec content never leaves the
-editor. **AIUP: Copy PlantUML Source** copies the equivalent PlantUML activity diagram to the clipboard.
+editor. **AI Unified Process: Copy PlantUML Source** copies the equivalent PlantUML activity diagram to the clipboard.
 
 Both English and German spec styles are recognised: `## Main Success Scenario` / `## Hauptszenario` /
 `## Hauptablauf` for the main flow, and `## Alternative Flows` / `## Alternativszenarien` / `## Alternativabläufe`
@@ -80,7 +80,7 @@ Both work in both directions, mirroring the CodeLenses:
 
 ## Conventions used
 
-The extension works with the Markdown conventions from the AIUP PetClinic example:
+The extension works with the Markdown conventions from the AI Unified Process PetClinic example:
 
 ```markdown
 # View Veterinarians
@@ -94,7 +94,7 @@ The extension works with the Markdown conventions from the AIUP PetClinic exampl
 ### BR-001: Lazy Loading
 ```
 
-and with the German AIUP spec style, which declares the ID in the title and codes alternative flows by step:
+and with the German AI Unified Process spec style, which declares the ID in the title and codes alternative flows by step:
 
 ```markdown
 # UC-001: Kunde suchen
@@ -143,6 +143,6 @@ Then in VS Code: `Extensions` panel → `…` menu → `Install from VSIX...`.
 ## Notes
 
 * The spec lookup scans Markdown files in the workspace and keeps them in an in-memory index refreshed by file
-  watchers. For typical AIUP repos this is fast because the spec folder is small.
+  watchers. For typical AI Unified Process repos this is fast because the spec folder is small.
 * Java files are scanned with a lightweight regex-based reader (no Java language server required). If you rename the
   annotation, the lookup still works as long as it is called `UseCase`.

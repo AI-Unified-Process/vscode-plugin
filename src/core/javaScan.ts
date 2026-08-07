@@ -1,7 +1,7 @@
 /**
  * A lightweight Java source scanner for `@UseCase` annotations. VS Code has no
  * Java PSI, so the scanner is regex-based over raw text: good enough for the
- * AIUP convention (string-literal attributes on test methods) without pulling
+ * AI Unified Process convention (string-literal attributes on test methods) without pulling
  * in a Java language server dependency.
  */
 
