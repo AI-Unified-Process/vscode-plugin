@@ -55,7 +55,7 @@ export class PlantUmlPreviewManager implements vscode.Disposable {
       VIEW_TYPE,
       previewTitle(uri),
       { viewColumn: column, preserveFocus: true },
-      { enableScripts: true, retainContextWhenHidden: true },
+      { ...webviewOptions(this.extensionUri), retainContextWhenHidden: true },
     );
     this.adopt(panel, uri);
   }
@@ -68,6 +68,7 @@ export class PlantUmlPreviewManager implements vscode.Disposable {
   /** Reconnects a panel restored by VS Code after a window reload. */
   restore(panel: vscode.WebviewPanel, uri: vscode.Uri): void {
     this.previews.get(uri.toString())?.dispose();
+    panel.webview.options = webviewOptions(this.extensionUri);
     this.adopt(panel, uri);
   }
 
@@ -78,7 +79,7 @@ export class PlantUmlPreviewManager implements vscode.Disposable {
   }
 
   private adopt(panel: vscode.WebviewPanel, uri: vscode.Uri): void {
-    const preview = new PlantUmlPreview(panel, uri, this.extensionUri, this.renderer);
+    const preview = new PlantUmlPreview(panel, uri, this.renderer);
     this.previews.set(uri.toString(), preview);
     panel.onDidDispose(() => {
       if (this.previews.get(uri.toString()) === preview) {
@@ -98,14 +99,9 @@ class PlantUmlPreview {
   constructor(
     private readonly panel: vscode.WebviewPanel,
     private readonly uri: vscode.Uri,
-    extensionUri: vscode.Uri,
     private readonly renderer: PlantUmlRenderer,
   ) {
     panel.title = previewTitle(uri);
-    panel.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
-    };
     panel.webview.html = html(panel.webview, uri);
     panel.webview.onDidReceiveMessage(
       (message) => {
@@ -219,6 +215,11 @@ function stripPrologue(svg: string): string {
   return start > 0 ? svg.slice(start) : svg;
 }
 
+/** Content options of a preview webview. Set once, at creation, so no reload races the layout. */
+function webviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
+  return { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')] };
+}
+
 function previewTitle(uri: vscode.Uri): string {
   return `Preview ${path.basename(uri.fsPath)}`;
 }
@@ -242,6 +243,9 @@ function html(webview: vscode.Webview, uri: vscode.Uri): string {
     body {
       margin: 0; padding: 0; display: flex; flex-direction: column;
       font-family: var(--vscode-font-family); font-size: var(--vscode-font-size);
+      /* Opaque: a transparent webview lets the editor underneath show through. */
+      background: var(--vscode-editor-background, #1e1e1e);
+      color: var(--vscode-editor-foreground, var(--vscode-foreground));
     }
     #toolbar {
       display: flex; align-items: center; gap: 4px; padding: 4px 8px;
