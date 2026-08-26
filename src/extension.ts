@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { SpecDiagnostics } from './diagnostics';
 import { DiagramViewProvider } from './diagramView';
+import { PlantUmlPreviewManager } from './plantumlPreview';
 import {
   JavaUseCaseCodeLensProvider,
   JavaUseCaseNavigationProvider,
@@ -17,6 +18,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const index = new WorkspaceIndex();
   const diagnostics = new SpecDiagnostics(index);
   const diagramView = new DiagramViewProvider(context.extensionUri);
+  const plantUmlPreviews = new PlantUmlPreviewManager(context.extensionUri, context.globalState);
+
+  /** The `.puml` file a preview command applies to: its argument, else the active editor. */
+  const plantUmlTarget = (uri?: vscode.Uri): vscode.Uri | undefined =>
+    uri ?? PlantUmlPreviewManager.activeSource()?.uri;
 
   const java = { language: 'java', scheme: 'file' };
   const markdown = { language: 'markdown', scheme: 'file' };
@@ -27,6 +33,7 @@ export function activate(context: vscode.ExtensionContext): void {
     index,
     diagnostics,
     diagramView,
+    plantUmlPreviews,
     vscode.window.registerWebviewViewProvider(DiagramViewProvider.viewId, diagramView, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
@@ -44,6 +51,30 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.commands.executeCommand('aiup.diagram.focus'),
     ),
     vscode.commands.registerCommand('aiup.createUseCaseJava', createUseCaseJava),
+    vscode.commands.registerCommand('aiup.previewPlantUml', (uri?: vscode.Uri) => {
+      const target = plantUmlTarget(uri);
+      if (!target) {
+        void vscode.window.showInformationMessage('Open a PlantUML file (.puml) to preview it.');
+        return;
+      }
+      plantUmlPreviews.show(target);
+    }),
+    vscode.commands.registerCommand('aiup.refreshPlantUmlPreview', (uri?: vscode.Uri) => {
+      const target = plantUmlTarget(uri);
+      if (target) {
+        plantUmlPreviews.refresh(target);
+      }
+    }),
+    vscode.window.registerWebviewPanelSerializer(PlantUmlPreviewManager.viewType, {
+      async deserializeWebviewPanel(panel: vscode.WebviewPanel, state: unknown): Promise<void> {
+        const uri = (state as { uri?: string } | undefined)?.uri;
+        if (!uri) {
+          panel.dispose();
+          return;
+        }
+        plantUmlPreviews.restore(panel, vscode.Uri.parse(uri));
+      },
+    }),
     vscode.commands.registerCommand('aiup.copyPlantUml', async () => {
       const source = diagramView.activePlantUml();
       if (!source) {

@@ -29,10 +29,29 @@
   "activationEvents": [
     "onLanguage:java",
     "onLanguage:markdown",
-    "workspaceContains:**/*UC-*.md"
+    "onLanguage:plantuml",
+    "workspaceContains:**/*UC-*.md",
+    "workspaceContains:**/*.puml"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "plantuml",
+        "aliases": [
+          "PlantUML",
+          "plantuml"
+        ],
+        "extensions": [
+          ".puml",
+          ".plantuml",
+          ".pu",
+          ".iuml",
+          ".wsd"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -68,6 +87,18 @@
         "command": "aiup.createUseCaseJava",
         "category": "AI Unified Process",
         "title": "Create UseCase.java Annotation"
+      },
+      {
+        "command": "aiup.previewPlantUml",
+        "category": "AI Unified Process",
+        "title": "Open PlantUML Preview to the Side",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "aiup.refreshPlantUmlPreview",
+        "category": "AI Unified Process",
+        "title": "Refresh PlantUML Preview",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -77,7 +108,76 @@
           "when": "view == aiup.diagram",
           "group": "navigation"
         }
+      ],
+      "editor/title": [
+        {
+          "command": "aiup.previewPlantUml",
+          "when": "resourceLangId == plantuml",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "aiup.previewPlantUml",
+          "when": "resourceLangId == plantuml",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "aiup.previewPlantUml",
+          "when": "resourceLangId == plantuml"
+        },
+        {
+          "command": "aiup.refreshPlantUmlPreview",
+          "when": "resourceLangId == plantuml"
+        }
       ]
+    },
+    "configuration": {
+      "title": "AI Unified Process",
+      "properties": {
+        "aiup.plantuml.renderer": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "local",
+            "server"
+          ],
+          "enumDescriptions": [
+            "Render locally when PlantUML is installed, otherwise ask once and fall back to the PlantUML server.",
+            "Render locally only. Requires plantuml on the PATH or aiup.plantuml.jarPath.",
+            "Always render on aiup.plantuml.server. The diagram source is sent to that server."
+          ],
+          "default": "auto",
+          "description": "How .puml previews are rendered."
+        },
+        "aiup.plantuml.jarPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to plantuml.jar. When set, the preview renders with Java instead of the plantuml command."
+        },
+        "aiup.plantuml.javaPath": {
+          "type": "string",
+          "default": "java",
+          "description": "Java executable used together with aiup.plantuml.jarPath."
+        },
+        "aiup.plantuml.commandPath": {
+          "type": "string",
+          "default": "plantuml",
+          "description": "The PlantUML command used for local rendering when no jar is configured."
+        },
+        "aiup.plantuml.server": {
+          "type": "string",
+          "default": "https://www.plantuml.com/plantuml",
+          "description": "PlantUML server used for rendering. Only contacted with the \"server\" renderer, or after you confirm the fallback."
+        },
+        "aiup.plantuml.timeout": {
+          "type": "number",
+          "default": 20,
+          "description": "Seconds to wait for the local renderer before giving up."
+        }
+      }
     }
   },
   "scripts": {

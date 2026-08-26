@@ -46,6 +46,19 @@ for the alternative flows. Flow headings may carry a label (`### A1: …`, branc
 references) or a step code in the German style (`### 3a. Keine Treffer gefunden`, branching directly at step 3).
 Sub-bullets under a numbered step are treated as detail and kept out of the step's diagram node.
 
+### PlantUML preview
+
+Open any `.puml` file (also `.plantuml`, `.pu`, `.iuml`, `.wsd`) and use the preview icon in the editor title bar or
+**AI Unified Process: Open PlantUML Preview to the Side** — the Use Case diagram (`docs/use_cases.puml`) renders next
+to the source and re-renders as you type. The preview zooms (buttons, `Ctrl`/`Cmd` + scroll), pans by dragging, and
+shows every `@startuml` block of the file, so multi-diagram files render in full.
+
+Rendering is local by default: the preview pipes the diagram through `plantuml` on the `PATH`, or through
+`java -jar` when **`aiup.plantuml.jarPath`** points at a `plantuml.jar`. Relative `!include` paths resolve against the
+file's own directory. If no local PlantUML is installed, the preview offers — once, and only after you confirm — to
+render on the PlantUML server configured in **`aiup.plantuml.server`**; that sends the diagram source to that server.
+**`aiup.plantuml.renderer`** (`auto` / `local` / `server`) pins the choice.
+
 ### CodeLens navigation
 
 In Java:
