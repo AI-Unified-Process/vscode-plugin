@@ -6,6 +6,7 @@ import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
 import '@bpmn-io/properties-panel/dist/assets/properties-panel.css';
 import './bpmnEditor.css';
+import { activityUseCaseId } from '../src/core/patterns';
 
 /*
  * The BPMN editor webview, the same bpmn-js modeler the AI Unified Process Studio and
@@ -15,9 +16,12 @@ import './bpmnEditor.css';
  * imported unchanged, and only an edit of the user serializes the model again and
  * reports it — importing fires no command, so opening a file never marks it dirty.
  * Undo and redo belong to the text document (VS Code's undo stack), not to bpmn-js.
+ * An activity named after a use case ("UC-004 Find Owners") opens its spec: from the
+ * context pad in the modeler, by a click in the viewer.
  *
  * Messages in: init {xml, readOnly}, setXml {xml}, export {id, format}.
- * Messages out: ready, changed {xml}, exported {id, data}, exportFailed {id, message}.
+ * Messages out: ready, changed {xml}, openUseCase {id}, exported {id, data},
+ * exportFailed {id, message}.
  */
 
 type Viewer = Modeler | NavigatedViewer;
@@ -52,11 +56,15 @@ function init(xml: string, readOnly: boolean): void {
   if (readOnly) {
     panel.remove();
     viewer = new NavigatedViewer({ container: canvas });
+    viewer.on('element.click', (event: { element: any }) => {
+      const id = useCaseId(event.element);
+      if (id) vscode.postMessage({ type: 'openUseCase', id });
+    });
   } else {
     const modeler = new Modeler({
       container: canvas,
       propertiesPanel: { parent: panel },
-      additionalModules: [BpmnPropertiesPanelModule, BpmnPropertiesProviderModule],
+      additionalModules: [BpmnPropertiesPanelModule, BpmnPropertiesProviderModule, UseCaseContextPadModule],
     } as any);
     modeler.on('commandStack.changed', (event: { trigger?: string }) => {
       // clearing the stack on an import is no edit of the user
@@ -72,6 +80,56 @@ function init(xml: string, readOnly: boolean): void {
     viewer = modeler;
   }
   void importXml();
+}
+
+/** The use case an activity references by the leading ID of its name, if any. */
+function useCaseId(element: any): string | undefined {
+  const business = element?.businessObject;
+  if (!business || element.labelTarget || !business.$instanceOf?.('bpmn:Activity')) return undefined;
+  return activityUseCaseId(business.name ?? '');
+}
+
+const OPEN_USE_CASE_ICON =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="#000" stroke-width="1.2">' +
+      '<path d="M3.5 1.5h6l3 3v10h-9z"/><path d="M9.5 1.5v3h3M5.5 8h5M5.5 10.5h5M5.5 13h3"/></svg>',
+  );
+
+/** Adds "Open use case" to the context pad of an activity that references one. */
+class UseCaseContextPad {
+  static $inject = ['contextPad'];
+
+  constructor(contextPad: any) {
+    contextPad.registerProvider(this);
+  }
+
+  getContextPadEntries(element: any): Record<string, unknown> {
+    const id = useCaseId(element);
+    if (!id) return {};
+    return {
+      'aiup.open-use-case': {
+        group: 'aiup',
+        imageUrl: OPEN_USE_CASE_ICON,
+        title: `Open use case ${id}`,
+        action: { click: () => vscode.postMessage({ type: 'openUseCase', id }) },
+      },
+    };
+  }
+}
+
+const UseCaseContextPadModule = {
+  __init__: ['aiupUseCaseContextPad'],
+  aiupUseCaseContextPad: ['type', UseCaseContextPad],
+};
+
+/** Shows the activities that open a use case with a pointer in the viewer. */
+function markUseCases(): void {
+  if (!viewer || viewer instanceof Modeler) return;
+  const drawing = viewer.get('canvas') as any;
+  for (const element of (viewer.get('elementRegistry') as any).getAll()) {
+    if (useCaseId(element)) drawing.addMarker(element, 'aiup-use-case');
+  }
 }
 
 function setXml(xml: string): void {
@@ -104,6 +162,7 @@ async function importXml(): Promise<void> {
     } else {
       drawing.zoom('fit-viewport', 'auto');
     }
+    markUseCases();
     imported = true;
     broken = false;
     showError(

@@ -24,6 +24,13 @@ export const USE_CASE_ID_LINE = /\*\*Use Case ID:\*\*\s*([SB]?UC-[A-Za-z0-9_-]+)
 export const USE_CASE_TITLE = /^#[ \t]+([SB]?UC-[A-Za-z0-9_-]+)/m;
 
 /**
+ * Name of a BPMN activity that references a use case by leading ID, e.g.
+ * `UC-004 Find Owners by Last Name` or `UC-004: …`. Shared with the BPMN editor
+ * webview.
+ */
+export const ACTIVITY_USE_CASE_REF = /^\s*([SB]?UC-[A-Za-z0-9_-]*[A-Za-z0-9])/;
+
+/**
  * Heading of the main flow section: `Main Success Scenario` (English),
  * `Hauptszenario` or `Hauptablauf` (German).
  */
@@ -85,6 +92,11 @@ export function fileNameMatchesUseCase(nameWithoutExtension: string, useCaseId: 
  */
 export function findDeclaredUseCaseId(content: string): string | undefined {
   return USE_CASE_ID_LINE.exec(content)?.[1] ?? USE_CASE_TITLE.exec(content)?.[1];
+}
+
+/** The use case a BPMN activity references by the leading ID of its name, if any. */
+export function activityUseCaseId(name: string): string | undefined {
+  return ACTIVITY_USE_CASE_REF.exec(name)?.[1];
 }
 
 export function isMainScenarioLabel(value: string): boolean {

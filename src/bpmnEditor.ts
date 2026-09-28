@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import type { WorkspaceIndex } from './workspaceIndex';
 
 const VIEW_TYPE = 'aiup.bpmnEditor';
 const TEXT_SYNC_DELAY_MS = 300;
@@ -9,6 +10,7 @@ type ExportFormat = 'svg' | 'png';
 type Inbound =
   | { type: 'ready' }
   | { type: 'changed'; xml: string }
+  | { type: 'openUseCase'; id: string }
   | { type: 'exported'; id: number; data: string }
   | { type: 'exportFailed'; id: number; message: string };
 
@@ -18,18 +20,22 @@ type Inbound =
  * editor ("Reopen Editor With… → Text Editor") share the text document: an edit in the
  * diagram replaces the document text, an edit of the text is imported into the diagram
  * (debounced). Opening a file imports it unchanged, so it is never dirty until the user
- * edits it. The editor runs from files bundled with the extension; nothing is loaded
- * from the network.
+ * edits it. An activity named after a use case (`UC-004 Find Owners`) opens its spec
+ * from the diagram. The editor runs from files bundled with the extension; nothing is
+ * loaded from the network.
  */
 export class BpmnEditorProvider implements vscode.CustomTextEditorProvider {
   static readonly viewType = VIEW_TYPE;
 
   private readonly editors = new Set<BpmnEditor>();
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly index: WorkspaceIndex,
+  ) {}
 
   resolveCustomTextEditor(document: vscode.TextDocument, panel: vscode.WebviewPanel): void {
-    const editor = new BpmnEditor(document, panel, this.extensionUri);
+    const editor = new BpmnEditor(document, panel, this.extensionUri, this.index);
     this.editors.add(editor);
     panel.onDidDispose(() => this.editors.delete(editor));
   }
@@ -57,6 +63,7 @@ class BpmnEditor {
     private readonly document: vscode.TextDocument,
     private readonly panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
+    private readonly index: WorkspaceIndex,
   ) {
     const media = vscode.Uri.joinPath(extensionUri, 'media');
     panel.webview.options = { enableScripts: true, localResourceRoots: [media] };
@@ -117,6 +124,9 @@ class BpmnEditor {
       case 'changed':
         void this.applyDiagramEdit(message.xml);
         break;
+      case 'openUseCase':
+        void this.openUseCase(message.id);
+        break;
       case 'exported':
         this.pendingExports.get(message.id)?.({ data: message.data });
         this.pendingExports.delete(message.id);
@@ -126,6 +136,29 @@ class BpmnEditor {
         this.pendingExports.delete(message.id);
         break;
     }
+  }
+
+  /** Opens the spec of the use case, lets the user choose between several, or reports that there is none. */
+  private async openUseCase(useCaseId: string): Promise<void> {
+    await this.index.ensureReady();
+    const specs = this.index
+      .specFilesFor(useCaseId)
+      .map((spec) => spec.uri)
+      .sort((a, b) => a.path.localeCompare(b.path));
+    if (specs.length === 0) {
+      void vscode.window.showWarningMessage(`No specification found for use case ${useCaseId}.`);
+      return;
+    }
+    let target = specs[0];
+    if (specs.length > 1) {
+      const choice = await vscode.window.showQuickPick(
+        specs.map((uri) => ({ label: vscode.workspace.asRelativePath(uri), uri })),
+        { title: `Specifications of ${useCaseId}` },
+      );
+      if (!choice) return;
+      target = choice.uri;
+    }
+    await vscode.window.showTextDocument(target, { preview: false });
   }
 
   private async applyDiagramEdit(xml: string): Promise<void> {

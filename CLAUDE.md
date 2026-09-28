@@ -48,7 +48,10 @@ Two layers, split so the convention logic stays unit-testable without a VS Code 
       panel of the AI Unified Process Studio, ported from the IntelliJ `BpmnFileEditor`. The webview posts
       `changed {xml}`, which replaces the document text; document edits are pushed back as `setXml` (debounced).
       Undo/redo belong to the text document: the webview stops bpmn-js from handling the undo/redo keys. SVG/PNG
-      export (`aiup.exportBpmnSvg` / `aiup.exportBpmnPng`) asks the webview (`export {id, format}`).
+      export (`aiup.exportBpmnSvg` / `aiup.exportBpmnPng`) asks the webview (`export {id, format}`). An activity
+      whose name starts with a Use Case ID (`ACTIVITY_USE_CASE_REF`, imported by the webview from `patterns.ts`)
+      gets an "Open use case" context pad entry (a click in the read-only viewer); the webview posts
+      `openUseCase {id}` and the extension opens the spec via `specFilesFor`.
 - **`webview/`** — browser code bundled by `esbuild.mjs` into `media/` (never committed), type-checked with its own
   `webview/tsconfig.json` (DOM lib):
     - `bpmnEditor.ts` + `bpmnEditor.css` → `media/bpmn-editor.{js,css}`: the editor webview.

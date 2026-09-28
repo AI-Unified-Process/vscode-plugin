@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const diagnostics = new SpecDiagnostics(index);
   const diagramView = new DiagramViewProvider(context.extensionUri);
   const plantUmlPreviews = new PlantUmlPreviewManager(context.extensionUri, context.globalState);
-  const bpmnEditors = new BpmnEditorProvider(context.extensionUri);
+  const bpmnEditors = new BpmnEditorProvider(context.extensionUri, index);
 
   /** The `.puml` file a preview command applies to: its argument, else the active editor. */
   const plantUmlTarget = (uri?: vscode.Uri): vscode.Uri | undefined =>

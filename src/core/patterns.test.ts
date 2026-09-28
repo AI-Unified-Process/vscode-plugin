@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  activityUseCaseId,
   fileNameMatchesUseCase,
   findDeclaredUseCaseId,
   isSpecFileName,
@@ -25,6 +26,20 @@ describe('spec file names', () => {
     expect(fileNameMatchesUseCase('SUC-002-import', 'UC-002')).toBe(false);
     // UC-002 must not match UC-0021
     expect(fileNameMatchesUseCase('UC-0021-other', 'UC-002')).toBe(false);
+  });
+});
+
+describe('activityUseCaseId', () => {
+  it('reads the leading ID of a BPMN activity name', () => {
+    expect(activityUseCaseId('UC-004 Find Owners by Last Name')).toBe('UC-004');
+    expect(activityUseCaseId('UC-001: Kunde suchen')).toBe('UC-001');
+    expect(activityUseCaseId(' SUC-002 View Owners')).toBe('SUC-002');
+    expect(activityUseCaseId('BUC-001')).toBe('BUC-001');
+  });
+
+  it('ignores names that do not start with an ID', () => {
+    expect(activityUseCaseId('Find Owners (UC-004)')).toBeUndefined();
+    expect(activityUseCaseId('RUC-001 Not a use case')).toBeUndefined();
   });
 });
 
