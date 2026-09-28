@@ -4,3 +4,6 @@ out/
 *.vsix
 media/mermaid.min.js
 .vscode-test/
+media/bpmn-editor.js
+media/bpmn-editor.css
+media/bpmn-preview.js

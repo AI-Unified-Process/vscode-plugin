@@ -14,7 +14,7 @@ plugins share the AI Unified Process convention contract.
 ```bash
 npm install          # once
 npm run check        # tsc --noEmit
-npm run build        # type-check + esbuild bundle to dist/extension.js (also copies mermaid.min.js to media/)
+npm run build        # type-check + esbuild bundle to dist/extension.js and the BPMN webviews to media/ (also copies mermaid.min.js to media/)
 npm test             # vitest unit tests (src/core/*.test.ts)
 npm run watch        # esbuild watch mode (use with F5 / Run Extension)
 npm run package      # build + vsce package -> aiup-navigator-<version>.vsix
@@ -44,6 +44,19 @@ Two layers, split so the convention logic stays unit-testable without a VS Code 
     - `diagramView.ts`: the `aiup.diagram` webview view; renders Mermaid from a bundled `media/mermaid.min.js`
       (copied from node_modules by `esbuild.mjs` — never committed).
     - `scaffold.ts`: one-time "Create UseCase.java" offer + command.
+    - `bpmnEditor.ts`: the `aiup.bpmnEditor` custom text editor for `*.bpmn` — the bpmn-js modeler + properties
+      panel of the AI Unified Process Studio, ported from the IntelliJ `BpmnFileEditor`. The webview posts
+      `changed {xml}`, which replaces the document text; document edits are pushed back as `setXml` (debounced).
+      Undo/redo belong to the text document: the webview stops bpmn-js from handling the undo/redo keys. SVG/PNG
+      export (`aiup.exportBpmnSvg` / `aiup.exportBpmnPng`) asks the webview (`export {id, format}`).
+- **`webview/`** — browser code bundled by `esbuild.mjs` into `media/` (never committed), type-checked with its own
+  `webview/tsconfig.json` (DOM lib):
+    - `bpmnEditor.ts` + `bpmnEditor.css` → `media/bpmn-editor.{js,css}`: the editor webview.
+    - `bpmnPreview.ts` → `media/bpmn-preview.js`, contributed as `markdown.previewScripts`: hides every
+      `pre > code.language-bpmn` of the Markdown preview and renders the diagram after it, re-inserted on every
+      `vscode.markdown.updateContent` from a source-keyed cache. Same script as the IntelliJ plugin's
+      `bpmn-editor/src/preview.ts` apart from the update hook — keep them in sync, and keep the bpmn-js versions
+      in line with the studio.
 
 ## Convention contract with consumer projects
 

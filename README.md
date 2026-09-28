@@ -59,6 +59,21 @@ file's own directory. If no local PlantUML is installed, the preview offers — 
 render on the PlantUML server configured in **`aiup.plantuml.server`**; that sends the diagram source to that server.
 **`aiup.plantuml.renderer`** (`auto` / `local` / `server`) pins the choice.
 
+### BPMN editor
+
+`.bpmn` files (BPMN 2.0 process models) open in the same bpmn-js modeler the AI Unified Process Studio and the
+IntelliJ plugin use: palette and canvas next to the properties panel of the selected element. The XML stays available
+through **Reopen Editor With… → Text Editor**; both edit the same document, so an edit in the diagram is an ordinary
+change of the file (undo and redo go through VS Code), and an edit of the XML is picked up by the diagram. Opening a
+file imports it unchanged — it is only rewritten once you edit the diagram. The editor runs from files bundled with
+the extension; nothing is loaded from the network.
+
+The editor title bar exports the shown diagram, unsaved edits included, as **SVG** or as **PNG** (twice the size, on
+white).
+
+In the Markdown preview, ` ```bpmn ` code fences holding BPMN 2.0 XML are shown as read-only diagrams instead of code;
+a fence that cannot be displayed shows the cause. The Markdown source is not touched.
+
 ### CodeLens navigation
 
 In Java:

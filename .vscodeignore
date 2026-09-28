@@ -10,3 +10,4 @@ tsconfig.json
 vitest.config.*
 **/*.map
 CLAUDE.md
+webview/**

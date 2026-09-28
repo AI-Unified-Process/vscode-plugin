@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { BpmnEditorProvider } from './bpmnEditor';
 import { SpecDiagnostics } from './diagnostics';
 import { DiagramViewProvider } from './diagramView';
 import { PlantUmlPreviewManager } from './plantumlPreview';
@@ -19,6 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const diagnostics = new SpecDiagnostics(index);
   const diagramView = new DiagramViewProvider(context.extensionUri);
   const plantUmlPreviews = new PlantUmlPreviewManager(context.extensionUri, context.globalState);
+  const bpmnEditors = new BpmnEditorProvider(context.extensionUri);
 
   /** The `.puml` file a preview command applies to: its argument, else the active editor. */
   const plantUmlTarget = (uri?: vscode.Uri): vscode.Uri | undefined =>
@@ -51,6 +53,11 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.commands.executeCommand('aiup.diagram.focus'),
     ),
     vscode.commands.registerCommand('aiup.createUseCaseJava', createUseCaseJava),
+    vscode.window.registerCustomEditorProvider(BpmnEditorProvider.viewType, bpmnEditors, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
+    vscode.commands.registerCommand('aiup.exportBpmnSvg', () => bpmnEditors.exportActive('svg')),
+    vscode.commands.registerCommand('aiup.exportBpmnPng', () => bpmnEditors.exportActive('png')),
     vscode.commands.registerCommand('aiup.previewPlantUml', (uri?: vscode.Uri) => {
       const target = plantUmlTarget(uri);
       if (!target) {
