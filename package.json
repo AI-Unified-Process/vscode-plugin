@@ -122,6 +122,12 @@
         "icon": "$(screen-normal)"
       },
       {
+        "command": "aiup.toggleBpmnProperties",
+        "category": "AI Unified Process",
+        "title": "Toggle BPMN Properties Panel",
+        "icon": "$(layout-sidebar-right)"
+      },
+      {
         "command": "aiup.exportBpmnSvg",
         "category": "AI Unified Process",
         "title": "Export BPMN Diagram as SVG",
@@ -164,6 +170,11 @@
           "group": "navigation"
         },
         {
+          "command": "aiup.toggleBpmnProperties",
+          "when": "activeCustomEditorId == aiup.bpmnEditor",
+          "group": "navigation"
+        },
+        {
           "command": "aiup.exportBpmnSvg",
           "when": "activeCustomEditorId == aiup.bpmnEditor",
           "group": "navigation"
@@ -200,6 +211,10 @@
         },
         {
           "command": "aiup.zoomBpmnToFit",
+          "when": "activeCustomEditorId == aiup.bpmnEditor"
+        },
+        {
+          "command": "aiup.toggleBpmnProperties",
           "when": "activeCustomEditorId == aiup.bpmnEditor"
         },
         {

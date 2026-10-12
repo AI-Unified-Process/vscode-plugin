@@ -19,7 +19,8 @@ import { activityUseCaseId } from '../src/core/patterns';
  * An activity named after a use case ("UC-004 Find Owners") opens its spec: from the
  * context pad in the modeler, by a click in the viewer.
  *
- * Messages in: init {xml, readOnly}, setXml {xml}, zoom {step}, export {id, format}.
+ * Messages in: init {xml, readOnly}, setXml {xml}, zoom {step}, toggleProperties,
+ * export {id, format}.
  * Messages out: ready, changed {xml}, openUseCase {id}, exported {id, data},
  * exportFailed {id, message}.
  */
@@ -32,9 +33,14 @@ type Inbound =
   | { type: 'init'; xml: string; readOnly: boolean }
   | { type: 'setXml'; xml: string }
   | { type: 'zoom'; step: ZoomStep }
+  | { type: 'toggleProperties' }
   | { type: 'export'; id: number; format: 'svg' | 'png' };
 
-declare function acquireVsCodeApi(): { postMessage(message: unknown): void };
+declare function acquireVsCodeApi(): {
+  postMessage(message: unknown): void;
+  getState(): { propertiesHidden?: boolean } | undefined;
+  setState(state: { propertiesHidden?: boolean }): void;
+};
 
 const vscode = acquireVsCodeApi();
 
@@ -49,6 +55,8 @@ let debounce: number | undefined;
 const canvas = document.getElementById('canvas')!;
 const panel = document.getElementById('properties')!;
 const errorBar = document.getElementById('error')!;
+// kept in the webview state, so a collapsed panel stays collapsed when the editor is reopened
+panel.hidden = vscode.getState()?.propertiesHidden === true;
 
 function init(xml: string, readOnly: boolean): void {
   currentXml = xml ?? '';
@@ -194,6 +202,14 @@ function zoom(step: ZoomStep): void {
   }
 }
 
+/** Collapses the properties panel to give the canvas the full width, or shows it again. */
+function toggleProperties(): void {
+  if (!panel.isConnected) return;
+  panel.hidden = !panel.hidden;
+  vscode.setState({ ...vscode.getState(), propertiesHidden: panel.hidden });
+  (viewer?.get('canvas') as any)?.resized();
+}
+
 function scheduleChange(): void {
   window.clearTimeout(debounce);
   debounce = window.setTimeout(async () => {
@@ -263,6 +279,9 @@ window.addEventListener('message', (event: MessageEvent<Inbound>) => {
       break;
     case 'zoom':
       zoom(message.step);
+      break;
+    case 'toggleProperties':
+      toggleProperties();
       break;
     case 'export':
       void exportDiagram(message.id, message.format);

@@ -46,6 +46,11 @@ export class BpmnEditorProvider implements vscode.CustomTextEditorProvider {
     this.activeEditor()?.zoom(step);
   }
 
+  /** Hides or shows the properties panel of the active BPMN editor. */
+  togglePropertiesActive(): void {
+    this.activeEditor()?.toggleProperties();
+  }
+
   /** Exports the diagram of the active BPMN editor, unsaved edits included. */
   async exportActive(format: ExportFormat): Promise<void> {
     const editor = this.activeEditor();
@@ -97,6 +102,10 @@ class BpmnEditor {
 
   zoom(step: ZoomStep): void {
     void this.panel.webview.postMessage({ type: 'zoom', step });
+  }
+
+  toggleProperties(): void {
+    void this.panel.webview.postMessage({ type: 'toggleProperties' });
   }
 
   async export(format: ExportFormat): Promise<void> {

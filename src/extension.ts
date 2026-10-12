@@ -59,6 +59,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('aiup.zoomInBpmn', () => bpmnEditors.zoomActive('in')),
     vscode.commands.registerCommand('aiup.zoomOutBpmn', () => bpmnEditors.zoomActive('out')),
     vscode.commands.registerCommand('aiup.zoomBpmnToFit', () => bpmnEditors.zoomActive('fit')),
+    vscode.commands.registerCommand('aiup.toggleBpmnProperties', () => bpmnEditors.togglePropertiesActive()),
     vscode.commands.registerCommand('aiup.exportBpmnSvg', () => bpmnEditors.exportActive('svg')),
     vscode.commands.registerCommand('aiup.exportBpmnPng', () => bpmnEditors.exportActive('png')),
     vscode.commands.registerCommand('aiup.previewPlantUml', (uri?: vscode.Uri) => {
