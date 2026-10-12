@@ -6,6 +6,7 @@ const VIEW_TYPE = 'aiup.bpmnEditor';
 const TEXT_SYNC_DELAY_MS = 300;
 
 type ExportFormat = 'svg' | 'png';
+type ZoomStep = 'in' | 'out' | 'fit';
 
 type Inbound =
   | { type: 'ready' }
@@ -40,14 +41,23 @@ export class BpmnEditorProvider implements vscode.CustomTextEditorProvider {
     panel.onDidDispose(() => this.editors.delete(editor));
   }
 
+  /** Zooms the diagram of the active BPMN editor. */
+  zoomActive(step: ZoomStep): void {
+    this.activeEditor()?.zoom(step);
+  }
+
   /** Exports the diagram of the active BPMN editor, unsaved edits included. */
   async exportActive(format: ExportFormat): Promise<void> {
-    const editor = [...this.editors].find((candidate) => candidate.active);
+    const editor = this.activeEditor();
     if (!editor) {
       void vscode.window.showInformationMessage('Open a BPMN file (.bpmn) in the BPMN editor to export it.');
       return;
     }
     await editor.export(format);
+  }
+
+  private activeEditor(): BpmnEditor | undefined {
+    return [...this.editors].find((candidate) => candidate.active);
   }
 }
 
@@ -83,6 +93,10 @@ class BpmnEditor {
 
   get active(): boolean {
     return this.panel.active;
+  }
+
+  zoom(step: ZoomStep): void {
+    void this.panel.webview.postMessage({ type: 'zoom', step });
   }
 
   async export(format: ExportFormat): Promise<void> {

@@ -68,7 +68,8 @@ change of the file (undo and redo go through VS Code), and an edit of the XML is
 file imports it unchanged — it is only rewritten once you edit the diagram. The editor runs from files bundled with
 the extension; nothing is loaded from the network.
 
-The editor title bar exports the shown diagram, unsaved edits included, as **SVG** or as **PNG** (twice the size, on
+The editor title bar zooms the diagram in and out and fits it to the editor (`Ctrl`/`Cmd` + scroll and pinch zoom as
+well), and exports the shown diagram, unsaved edits included, as **SVG** or as **PNG** (twice the size, on
 white).
 
 An activity whose name starts with a Use Case ID — `UC-004 Find Owners by Last Name`, `UC-001: Kunde suchen`, or the

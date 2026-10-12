@@ -19,16 +19,19 @@ import { activityUseCaseId } from '../src/core/patterns';
  * An activity named after a use case ("UC-004 Find Owners") opens its spec: from the
  * context pad in the modeler, by a click in the viewer.
  *
- * Messages in: init {xml, readOnly}, setXml {xml}, export {id, format}.
+ * Messages in: init {xml, readOnly}, setXml {xml}, zoom {step}, export {id, format}.
  * Messages out: ready, changed {xml}, openUseCase {id}, exported {id, data},
  * exportFailed {id, message}.
  */
 
 type Viewer = Modeler | NavigatedViewer;
 
+type ZoomStep = 'in' | 'out' | 'fit';
+
 type Inbound =
   | { type: 'init'; xml: string; readOnly: boolean }
   | { type: 'setXml'; xml: string }
+  | { type: 'zoom'; step: ZoomStep }
   | { type: 'export'; id: number; format: 'svg' | 'png' };
 
 declare function acquireVsCodeApi(): { postMessage(message: unknown): void };
@@ -178,6 +181,19 @@ async function importXml(): Promise<void> {
   }
 }
 
+/**
+ * Zooms by the editor title bar: the wheel zoom of bpmn-js needs Ctrl/Cmd with the wheel
+ * or a pinch, which the webview does not always receive.
+ */
+function zoom(step: ZoomStep): void {
+  if (!viewer || !imported) return;
+  if (step === 'fit') {
+    (viewer.get('canvas') as any).zoom('fit-viewport', 'auto');
+  } else {
+    (viewer.get('zoomScroll') as any).stepZoom(step === 'in' ? 1 : -1);
+  }
+}
+
 function scheduleChange(): void {
   window.clearTimeout(debounce);
   debounce = window.setTimeout(async () => {
@@ -244,6 +260,9 @@ window.addEventListener('message', (event: MessageEvent<Inbound>) => {
       break;
     case 'setXml':
       setXml(message.xml);
+      break;
+    case 'zoom':
+      zoom(message.step);
       break;
     case 'export':
       void exportDiagram(message.id, message.format);

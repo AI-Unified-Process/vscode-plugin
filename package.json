@@ -104,6 +104,24 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "aiup.zoomInBpmn",
+        "category": "AI Unified Process",
+        "title": "Zoom In BPMN Diagram",
+        "icon": "$(zoom-in)"
+      },
+      {
+        "command": "aiup.zoomOutBpmn",
+        "category": "AI Unified Process",
+        "title": "Zoom Out BPMN Diagram",
+        "icon": "$(zoom-out)"
+      },
+      {
+        "command": "aiup.zoomBpmnToFit",
+        "category": "AI Unified Process",
+        "title": "Fit BPMN Diagram to Editor",
+        "icon": "$(screen-normal)"
+      },
+      {
         "command": "aiup.exportBpmnSvg",
         "category": "AI Unified Process",
         "title": "Export BPMN Diagram as SVG",
@@ -128,6 +146,21 @@
         {
           "command": "aiup.previewPlantUml",
           "when": "resourceLangId == plantuml",
+          "group": "navigation"
+        },
+        {
+          "command": "aiup.zoomInBpmn",
+          "when": "activeCustomEditorId == aiup.bpmnEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "aiup.zoomOutBpmn",
+          "when": "activeCustomEditorId == aiup.bpmnEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "aiup.zoomBpmnToFit",
+          "when": "activeCustomEditorId == aiup.bpmnEditor",
           "group": "navigation"
         },
         {
@@ -156,6 +189,18 @@
         {
           "command": "aiup.refreshPlantUmlPreview",
           "when": "resourceLangId == plantuml"
+        },
+        {
+          "command": "aiup.zoomInBpmn",
+          "when": "activeCustomEditorId == aiup.bpmnEditor"
+        },
+        {
+          "command": "aiup.zoomOutBpmn",
+          "when": "activeCustomEditorId == aiup.bpmnEditor"
+        },
+        {
+          "command": "aiup.zoomBpmnToFit",
+          "when": "activeCustomEditorId == aiup.bpmnEditor"
         },
         {
           "command": "aiup.exportBpmnSvg",
