@@ -3,10 +3,14 @@ import {
   activityUseCaseId,
   fileNameMatchesUseCase,
   findDeclaredUseCaseId,
+  isBusinessRuleId,
   isSpecFileName,
+  locateUseCaseReferences,
+  referenceLabel,
+  referenceMatches,
   scenarioPrefix,
 } from './patterns';
-import { classifySpecLine } from './specSites';
+import { classifySpecLine, implementationSite } from './specSites';
 
 describe('spec file names', () => {
   it('accepts plain, prefixed and variant IDs', () => {
@@ -93,5 +97,91 @@ describe('classifySpecLine', () => {
     });
     expect(classifySpecLine('Some ordinary paragraph.')).toBeUndefined();
     expect(classifySpecLine('## Preconditions')).toBeUndefined();
+  });
+});
+
+describe('use case references', () => {
+  const references = (text: string) => locateUseCaseReferences(text).map((r) => r.reference);
+
+  it('reads the ID with its optional rule or flow', () => {
+    expect(references('UC-002 BR-001: Rows load lazily.')).toEqual([
+      { useCaseId: 'UC-002', qualifier: 'BR-001' },
+    ]);
+    expect(references('UC-010 A2: Error view')).toEqual([{ useCaseId: 'UC-010', qualifier: 'A2' }]);
+    expect(references('UC-001 3a')).toEqual([{ useCaseId: 'UC-001', qualifier: '3a' }]);
+    expect(references('UC-002: View Veterinarians')).toEqual([{ useCaseId: 'UC-002' }]);
+  });
+
+  it('does not match inside a longer ID', () => {
+    expect(references('foo-UC-002 XUC-002')).toEqual([]);
+    expect(references('SUC-002 GR-008: Regel')).toEqual([{ useCaseId: 'SUC-002', qualifier: 'GR-008' }]);
+  });
+
+  it('takes no word after the ID for a qualifier', () => {
+    expect(references('UC-002 View Veterinarians, see UC-001 3a.')).toEqual([
+      { useCaseId: 'UC-002' },
+      { useCaseId: 'UC-001', qualifier: '3a' },
+    ]);
+  });
+
+  it('shares a qualifier across a slash list', () => {
+    expect(references('UC-007 / UC-008 BR-001: Unique per owner.')).toEqual([
+      { useCaseId: 'UC-007', qualifier: 'BR-001' },
+      { useCaseId: 'UC-008', qualifier: 'BR-001' },
+    ]);
+  });
+
+  it('locates the reference in the text', () => {
+    const text = '// see UC-002 BR-001: Rows.';
+    const [{ start, end }] = locateUseCaseReferences(text);
+    expect(text.slice(start, end)).toBe('UC-002 BR-001');
+  });
+
+  it('labels and classifies references', () => {
+    expect(referenceLabel({ useCaseId: 'UC-002' })).toBe('UC-002');
+    expect(referenceLabel({ useCaseId: 'UC-002', qualifier: 'A2' })).toBe('UC-002 A2');
+    expect(isBusinessRuleId('GR-008')).toBe(true);
+    expect(isBusinessRuleId('A2')).toBe(false);
+  });
+
+  it('matches markers of the rule, or all of the Use Case', () => {
+    const marker = { useCaseId: 'UC-002', qualifier: 'BR-001' };
+    expect(referenceMatches(marker, 'UC-002')).toBe(true);
+    expect(referenceMatches(marker, 'UC-002', 'br-001')).toBe(true);
+    expect(referenceMatches(marker, 'UC-002', 'BR-009')).toBe(false);
+    expect(referenceMatches(marker, 'UC-003', 'BR-001')).toBe(false);
+    expect(referenceMatches({ useCaseId: 'UC-002' }, 'UC-002', 'BR-001')).toBe(false);
+  });
+});
+
+describe('implementationSite', () => {
+  it('links the ID line to every marker of the Use Case', () => {
+    expect(implementationSite('**Use Case ID:** UC-002', 'UC-002', true)).toEqual({ useCaseId: 'UC-002' });
+  });
+
+  it('links rule and flow sites to their own markers', () => {
+    expect(implementationSite('### BR-001: Lazy', 'UC-002', true)).toEqual({
+      useCaseId: 'UC-002',
+      qualifier: 'BR-001',
+    });
+    expect(implementationSite('- **GR-008:** Regel', 'UC-001', false)).toEqual({
+      useCaseId: 'UC-001',
+      qualifier: 'GR-008',
+    });
+    expect(implementationSite('### 3a. Keine Treffer', 'UC-001', false)).toEqual({
+      useCaseId: 'UC-001',
+      qualifier: '3a',
+    });
+  });
+
+  it('uses the H1 title only without an ID line', () => {
+    expect(implementationSite('# UC-001: Kunde suchen', 'UC-001', false)).toEqual({ useCaseId: 'UC-001' });
+    expect(implementationSite('# UC-001: Kunde suchen', 'UC-001', true)).toBeUndefined();
+    expect(implementationSite('# View Veterinarians', 'UC-002', true)).toBeUndefined();
+  });
+
+  it('has no site on the main scenario or outside a spec', () => {
+    expect(implementationSite('## Main Success Scenario', 'UC-002', true)).toBeUndefined();
+    expect(implementationSite('### BR-001: Lazy', undefined, false)).toBeUndefined();
   });
 });

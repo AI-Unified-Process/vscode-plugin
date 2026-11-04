@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
-import { classifySpecLine, SpecSite } from './core/specSites';
+import { commentSyntaxFor, scanUseCaseMarkers, UseCaseMarker } from './core/commentScan';
+import { isBusinessRuleId, referenceLabel, UseCaseReference, USE_CASE_ID_LINE } from './core/patterns';
+import { classifySpecLine, implementationSite, SpecSite } from './core/specSites';
 import { scanJavaSource, JavaUseCaseAnnotation } from './core/javaScan';
-import { TestClassRef, TestMethodRef, WorkspaceIndex } from './workspaceIndex';
+import { ImplementationMarkerRef, TestClassRef, TestMethodRef, WorkspaceIndex } from './workspaceIndex';
 
 /** A navigation target with the labels shown in the picker. */
 export interface NavigationTarget {
@@ -63,6 +65,21 @@ function specTargets(locations: vscode.Location[]): NavigationTarget[] {
     location,
     label: `${basename(location.uri)}:${location.range.start.line + 1}`,
   }));
+}
+
+/** One target per comment line, shown as its text with the file name as the description. */
+function markerTargets(markers: ImplementationMarkerRef[]): NavigationTarget[] {
+  const seen = new Set<string>();
+  return markers
+    .filter(({ location }) => {
+      const key = `${location.uri.toString()}:${location.range.start.line}`;
+      return seen.has(key) ? false : (seen.add(key), true);
+    })
+    .map(({ marker, location }) => ({
+      location,
+      label: marker.text,
+      description: basename(location.uri),
+    }));
 }
 
 function basename(uri: vscode.Uri): string {
@@ -136,32 +153,57 @@ export class SpecCodeLensProvider implements vscode.CodeLensProvider {
 
   async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
     await this.index.ensureReady();
+    const declaredId = this.index.declaredUseCaseId(document.uri);
+    const hasIdLine = USE_CASE_ID_LINE.test(document.getText());
     const lenses: vscode.CodeLens[] = [];
     for (let line = 0; line < document.lineCount; line++) {
-      const site = classifySpecLine(document.lineAt(line).text);
-      if (!site) {
-        continue;
+      const text = document.lineAt(line).text;
+      const range = new vscode.Range(line, 0, line, 0);
+      const testLens = this.testLens(document, text, range);
+      if (testLens) {
+        lenses.push(testLens);
       }
-      const resolved = specSiteTargets(this.index, document.uri, site);
-      if (!resolved || resolved.targets.length === 0) {
-        continue;
+      const reference = implementationSite(text, declaredId, hasIdLine);
+      const implementation = reference ? implementationTargets(this.index, reference) : [];
+      if (reference && implementation.length > 0) {
+        lenses.push(
+          new vscode.CodeLens(range, {
+            title: countLabel(implementation.length, 'implementation marker'),
+            command: OPEN_LOCATIONS_COMMAND,
+            arguments: [implementation, `Implementation of ${referenceLabel(reference)}`],
+          }),
+        );
       }
-      const title =
-        site.kind === 'title'
-          ? resolved.targets.length === 1
-            ? `Test class: ${resolved.targets[0].label}`
-            : countLabel(resolved.targets.length, 'test class')
-          : countLabel(resolved.targets.length, 'test method');
-      lenses.push(
-        new vscode.CodeLens(new vscode.Range(line, 0, line, 0), {
-          title,
-          command: OPEN_LOCATIONS_COMMAND,
-          arguments: [resolved.targets, resolved.title],
-        }),
-      );
     }
     return lenses;
   }
+
+  private testLens(
+    document: vscode.TextDocument,
+    lineText: string,
+    range: vscode.Range,
+  ): vscode.CodeLens | undefined {
+    const site = classifySpecLine(lineText);
+    const resolved = site ? specSiteTargets(this.index, document.uri, site) : undefined;
+    if (!site || !resolved || resolved.targets.length === 0) {
+      return undefined;
+    }
+    const title =
+      site.kind === 'title'
+        ? resolved.targets.length === 1
+          ? `Test class: ${resolved.targets[0].label}`
+          : countLabel(resolved.targets.length, 'test class')
+        : countLabel(resolved.targets.length, 'test method');
+    return new vscode.CodeLens(range, {
+      title,
+      command: OPEN_LOCATIONS_COMMAND,
+      arguments: [resolved.targets, resolved.title],
+    });
+  }
+}
+
+function implementationTargets(index: WorkspaceIndex, reference: UseCaseReference): NavigationTarget[] {
+  return markerTargets(index.implementationMarkers(reference.useCaseId, reference.qualifier));
 }
 
 export class SpecNavigationProvider implements vscode.DefinitionProvider, vscode.ReferenceProvider {
@@ -174,11 +216,19 @@ export class SpecNavigationProvider implements vscode.DefinitionProvider, vscode
     return this.targetsAt(document, position);
   }
 
+  /** The tests of the line, and the implementation markers carrying its rule or flow. */
   async provideReferences(
     document: vscode.TextDocument,
     position: vscode.Position,
   ): Promise<vscode.Location[]> {
-    return this.targetsAt(document, position);
+    const tests = await this.targetsAt(document, position);
+    const reference = implementationSite(
+      document.lineAt(position.line).text,
+      this.index.declaredUseCaseId(document.uri),
+      USE_CASE_ID_LINE.test(document.getText()),
+    );
+    const markers = reference ? implementationTargets(this.index, reference) : [];
+    return [...tests, ...markers.map((target) => target.location)];
   }
 
   private async targetsAt(
@@ -280,4 +330,103 @@ export class JavaUseCaseNavigationProvider
     }
     return [];
   }
+}
+
+// ---- code comment side ----------------------------------------------------
+
+function markersIn(document: vscode.TextDocument): UseCaseMarker[] {
+  const syntax = commentSyntaxFor(document.uri.path);
+  return syntax ? scanUseCaseMarkers(document.getText(), syntax) : [];
+}
+
+function distinctReferences(markers: UseCaseMarker[]): UseCaseReference[] {
+  const byLabel = new Map(markers.map(({ reference }) => [referenceLabel(reference), reference]));
+  return [...byLabel.values()];
+}
+
+/** One lens per comment line, targeting every reference on it that has a spec. */
+export class CommentMarkerCodeLensProvider implements vscode.CodeLensProvider {
+  readonly onDidChangeCodeLenses: vscode.Event<void>;
+
+  constructor(private readonly index: WorkspaceIndex) {
+    this.onDidChangeCodeLenses = index.onDidChange;
+  }
+
+  async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
+    await this.index.ensureReady();
+    const byLine = new Map<number, UseCaseMarker[]>();
+    for (const marker of markersIn(document)) {
+      const line = document.positionAt(marker.start).line;
+      byLine.set(line, [...(byLine.get(line) ?? []), marker]);
+    }
+    const lenses: vscode.CodeLens[] = [];
+    for (const [line, markers] of byLine) {
+      const resolved = distinctReferences(markers).filter(
+        (reference) => this.index.specFilesFor(reference.useCaseId).length > 0,
+      );
+      if (resolved.length === 0) {
+        continue;
+      }
+      const labels = resolved.map(referenceLabel).join(', ');
+      lenses.push(
+        new vscode.CodeLens(new vscode.Range(line, 0, line, 0), {
+          title: `Spec: ${labels}`,
+          command: OPEN_LOCATIONS_COMMAND,
+          arguments: [specTargets(this.index.specTargetsForReferences(resolved)), `Spec for ${labels}`],
+        }),
+      );
+    }
+    return lenses;
+  }
+}
+
+export class CommentMarkerNavigationProvider
+  implements vscode.DefinitionProvider, vscode.ReferenceProvider
+{
+  constructor(private readonly index: WorkspaceIndex) {}
+
+  async provideDefinition(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+  ): Promise<vscode.Location[]> {
+    await this.index.ensureReady();
+    const reference = markerAt(document, position);
+    return reference ? this.index.specTargetsForReferences([reference]) : [];
+  }
+
+  /** The spec line, the tests, and the other markers of the same rule, flow or Use Case. */
+  async provideReferences(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+  ): Promise<vscode.Location[]> {
+    await this.index.ensureReady();
+    const reference = markerAt(document, position);
+    if (!reference) {
+      return [];
+    }
+    const { useCaseId, qualifier } = reference;
+    return [
+      ...this.index.specTargetsForReferences([reference]),
+      ...this.testsOf(reference).map((test) => test.location),
+      ...this.index.implementationMarkers(useCaseId, qualifier).map((marker) => marker.location),
+    ];
+  }
+
+  private testsOf({ useCaseId, qualifier }: UseCaseReference): TestMethodRef[] {
+    if (qualifier === undefined) {
+      return this.index.testMethodsFor(useCaseId);
+    }
+    return isBusinessRuleId(qualifier)
+      ? this.index.testMethodsForBusinessRule(useCaseId, qualifier)
+      : this.index.testMethodsForScenario(useCaseId, qualifier);
+  }
+}
+
+function markerAt(
+  document: vscode.TextDocument,
+  position: vscode.Position,
+): UseCaseReference | undefined {
+  const offset = document.offsetAt(position);
+  return markersIn(document).find((marker) => offset >= marker.start && offset <= marker.end)
+    ?.reference;
 }

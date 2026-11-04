@@ -3,6 +3,8 @@ import {
   BUSINESS_RULE_SITE,
   MAIN_SCENARIO_HEADING,
   USE_CASE_ID_LINE,
+  USE_CASE_TITLE,
+  UseCaseReference,
 } from './patterns';
 
 /**
@@ -40,4 +42,31 @@ export function classifySpecLine(lineText: string): SpecSite | undefined {
     return { kind: 'altFlow', code: afMatch[1] };
   }
   return undefined;
+}
+
+/**
+ * The markers a spec line links to in the implementation, like the IntelliJ
+ * plugin's `SpecToImplementationLineMarkerProvider`: the `**Use Case ID:**`
+ * line, or the H1 title of a spec without that line, for every marker of the
+ * Use Case; a business-rule site or alternative-flow heading for its own.
+ * The Main Success Scenario has no markers.
+ */
+export function implementationSite(
+  lineText: string,
+  declaredUseCaseId: string | undefined,
+  hasUseCaseIdLine: boolean,
+): UseCaseReference | undefined {
+  const idLine = USE_CASE_ID_LINE.exec(lineText);
+  if (idLine) {
+    return { useCaseId: idLine[1] };
+  }
+  if (!declaredUseCaseId) {
+    return undefined;
+  }
+  const qualifier = BUSINESS_RULE_SITE.exec(lineText)?.[1] ?? ALT_FLOW_HEADING.exec(lineText)?.[1];
+  if (qualifier) {
+    return { useCaseId: declaredUseCaseId, qualifier };
+  }
+  const isTitleSite = !hasUseCaseIdLine && USE_CASE_TITLE.exec(lineText)?.[1] === declaredUseCaseId;
+  return isTitleSite ? { useCaseId: declaredUseCaseId } : undefined;
 }

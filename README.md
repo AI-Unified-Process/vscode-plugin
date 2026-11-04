@@ -86,6 +86,16 @@ In Java:
 * A **Spec: UC-XXX** lens above `@UseCase(id = "UC-XXX")` jumps to the matching spec file, landing on the scenario
   heading and any business rule headings referenced via `businessRules = {...}`.
 
+In code comments (the markers the implementation carries instead of `@UseCase`):
+
+* A **Spec: UC-XXX BR-YYY** lens above `// UC-XXX BR-YYY: …`, `-- UC-XXX BR-YYY: …` or a Javadoc line
+  `UC-XXX BR-YYY: …` jumps to that business rule in the spec, `UC-XXX A1` or `UC-XXX 3a` to that alternative flow, and
+  a plain `UC-XXX` to the spec file. A rule or flow the spec does not declare falls back to the spec file.
+  `UC-007 / UC-008 BR-001` names BR-001 of both Use Cases; a line with several references offers a quick pick.
+* Comments are recognized in Java, Kotlin, Groovy, Scala, TypeScript, JavaScript, Go, C#, Rust, Swift, PHP, C/C++, SQL,
+  XML, HTML, CSS/SCSS/Less, Vue, Svelte, Razor, Python, shell, YAML and `.properties` files. Dependencies and build
+  output (`node_modules`, `target`, `build`, `dist`, …) are skipped.
+
 In Markdown specs:
 
 * `**Use Case ID:** UC-XXX` jumps to all test methods annotated with that ID.
@@ -98,6 +108,15 @@ In Markdown specs:
   that reference that rule via `businessRules = {"BR-XXX"}`, scoped to the Use Case declared by the spec file
   (rule ids are unique only within a UC).
 
+A second **N implementation markers** lens on the same lines jumps to the code comments that carry a matching marker
+(test sources excluded, they link through `@UseCase`; they are told by path, such as `src/test/`, `tests/`,
+`*Test.java`, `*IT.java` or `*.spec.ts`):
+
+* `### BR-XXX` / `- **GR-XXX:** …` jumps to the `UC-XXX BR-XXX` markers of that Use Case, `### A1: ...` / `### 3a. ...`
+  to the `UC-XXX A1` / `UC-XXX 3a` markers.
+* `**Use Case ID:** UC-XXX` — or the H1 title `# UC-XXX: …` when the spec has no such line — jumps to every marker
+  of the Use Case.
+
 ### Go to Definition and Find References
 
 Both work in both directions, mirroring the CodeLenses:
@@ -105,7 +124,9 @@ Both work in both directions, mirroring the CodeLenses:
 * On a `@UseCase` annotation or its `id` literal — the spec leaves (scenario heading + BR headings).
 * On a string inside `businessRules = {...}` — the matching `### BR-XXX` heading in the spec.
 * On `**Use Case ID:** UC-XXX`, the H1 title, `## Main Success Scenario`, `### A1: ...`, and `### BR-XXX` lines —
-  the corresponding test methods or test classes.
+  the corresponding test methods or test classes. Find References adds the Use Case markers in code comments.
+* On a marker in a code comment (`// UC-XXX BR-YYY: …`) — Go to Definition opens the spec line, Find References also
+  lists the tests and the other markers.
 
 ### Diagnostics
 

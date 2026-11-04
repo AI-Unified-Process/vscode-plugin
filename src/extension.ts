@@ -3,7 +3,10 @@ import { BpmnEditorProvider } from './bpmnEditor';
 import { SpecDiagnostics } from './diagnostics';
 import { DiagramViewProvider } from './diagramView';
 import { PlantUmlPreviewManager } from './plantumlPreview';
+import { COMMENT_FILE_EXTENSIONS } from './core/commentScan';
 import {
+  CommentMarkerCodeLensProvider,
+  CommentMarkerNavigationProvider,
   JavaUseCaseCodeLensProvider,
   JavaUseCaseNavigationProvider,
   NavigationTarget,
@@ -28,6 +31,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const java = { language: 'java', scheme: 'file' };
   const markdown = { language: 'markdown', scheme: 'file' };
+  const code = { scheme: 'file', pattern: `**/*.{${COMMENT_FILE_EXTENSIONS.join(',')}}` };
+  const commentNavigation = new CommentMarkerNavigationProvider(index);
   const javaNavigation = new JavaUseCaseNavigationProvider(index);
   const specNavigation = new SpecNavigationProvider(index);
 
@@ -41,6 +46,9 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.languages.registerCodeLensProvider(java, new JavaUseCaseCodeLensProvider(index)),
     vscode.languages.registerCodeLensProvider(markdown, new SpecCodeLensProvider(index)),
+    vscode.languages.registerCodeLensProvider(code, new CommentMarkerCodeLensProvider(index)),
+    vscode.languages.registerDefinitionProvider(code, commentNavigation),
+    vscode.languages.registerReferenceProvider(code, commentNavigation),
     vscode.languages.registerDefinitionProvider(java, javaNavigation),
     vscode.languages.registerReferenceProvider(java, javaNavigation),
     vscode.languages.registerDefinitionProvider(markdown, specNavigation),

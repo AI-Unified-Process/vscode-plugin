@@ -5,9 +5,21 @@ import {
   findDeclaredUseCaseId,
   isMainScenarioLabel,
   isSpecFileName,
+  isBusinessRuleId,
   MAIN_SCENARIO_HEADING,
+  referenceMatches,
   scenarioPrefix,
+  UseCaseReference,
 } from './core/patterns';
+import {
+  COMMENT_FILE_EXTENSIONS,
+  commentSyntaxFor,
+  IGNORED_DIRECTORIES,
+  isIgnoredPath,
+  isTestSourcePath,
+  scanUseCaseMarkers,
+  UseCaseMarker,
+} from './core/commentScan';
 import { JavaScanResult, JavaUseCaseAnnotation, scanJavaSource } from './core/javaScan';
 import { computeLineStarts, offsetToPosition } from './core/textPos';
 
@@ -22,6 +34,19 @@ interface JavaFileEntry {
   uri: vscode.Uri;
   scan: JavaScanResult;
   lineStarts: number[];
+}
+
+interface MarkerFileEntry {
+  uri: vscode.Uri;
+  markers: UseCaseMarker[];
+  lineStarts: number[];
+  isTestSource: boolean;
+}
+
+/** A Use Case marker in a code comment, with everything needed to navigate to it. */
+export interface ImplementationMarkerRef {
+  marker: UseCaseMarker;
+  location: vscode.Location;
 }
 
 /** A `@UseCase`-annotated test method, with everything needed to navigate to it. */
@@ -40,14 +65,17 @@ export interface TestClassRef {
 }
 
 /**
- * In-memory index of the workspace's Markdown Use Case specs and
- * `@UseCase`-annotated Java files. Mirrors the IntelliJ plugin's
+ * In-memory index of the workspace's Markdown Use Case specs,
+ * `@UseCase`-annotated Java files and the Use Case markers in code comments of
+ * any language. Mirrors the IntelliJ plugin's
  * `UseCaseIndex`; for typical AI Unified Process repos the full scan is fast because the
  * spec folder is small, so all lookups run against cached file contents.
  */
 export class WorkspaceIndex implements vscode.Disposable {
   private readonly specs = new Map<string, SpecFileEntry>();
   private readonly javas = new Map<string, JavaFileEntry>();
+  /** Only the files that carry markers; code files are not kept in memory. */
+  private readonly markerFiles = new Map<string, MarkerFileEntry>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly changeEmitter = new vscode.EventEmitter<void>();
   private changeTimer: NodeJS.Timeout | undefined;
@@ -57,7 +85,9 @@ export class WorkspaceIndex implements vscode.Disposable {
   readonly onDidChange = this.changeEmitter.event;
 
   constructor() {
-    const watcher = vscode.workspace.createFileSystemWatcher('**/*.{md,java}');
+    const watcher = vscode.workspace.createFileSystemWatcher(
+      `**/*.{md,${COMMENT_FILE_EXTENSIONS.join(',')}}`,
+    );
     watcher.onDidCreate((uri) => void this.refreshFromDisk(uri));
     watcher.onDidChange((uri) => void this.refreshFromDisk(uri));
     watcher.onDidDelete((uri) => this.remove(uri));
@@ -82,14 +112,18 @@ export class WorkspaceIndex implements vscode.Disposable {
   }
 
   private async scanWorkspace(): Promise<void> {
-    const [mdFiles, javaFiles] = await Promise.all([
+    const codeFileExtensions = COMMENT_FILE_EXTENSIONS.filter((extension) => extension !== 'java');
+    const [mdFiles, javaFiles, codeFiles] = await Promise.all([
       vscode.workspace.findFiles('**/*.md'),
       vscode.workspace.findFiles('**/*.java'),
+      vscode.workspace.findFiles(
+        `**/*.{${codeFileExtensions.join(',')}}`,
+        `**/{${IGNORED_DIRECTORIES.join(',')}}/**`,
+      ),
     ]);
-    await Promise.all([
-      ...mdFiles.map((uri) => this.refreshFromDisk(uri, false)),
-      ...javaFiles.map((uri) => this.refreshFromDisk(uri, false)),
-    ]);
+    await Promise.all(
+      [...mdFiles, ...javaFiles, ...codeFiles].map((uri) => this.refreshFromDisk(uri, false)),
+    );
     // Dirty editors win over disk state.
     for (const document of vscode.workspace.textDocuments) {
       this.refreshFromDocument(document, false);
@@ -123,8 +157,9 @@ export class WorkspaceIndex implements vscode.Disposable {
 
   private update(uri: vscode.Uri, text: string, notify: boolean): void {
     const path = uri.path;
+    const fileName = path.slice(path.lastIndexOf('/') + 1);
+    const markersChanged = this.updateMarkers(uri, fileName, text);
     if (path.endsWith('.md')) {
-      const fileName = path.slice(path.lastIndexOf('/') + 1);
       this.specs.set(uri.toString(), {
         uri,
         nameWithoutExtension: fileName.replace(/\.md$/, ''),
@@ -137,7 +172,7 @@ export class WorkspaceIndex implements vscode.Disposable {
         scan: scanJavaSource(text),
         lineStarts: computeLineStarts(text),
       });
-    } else {
+    } else if (!markersChanged) {
       return;
     }
     if (notify) {
@@ -145,9 +180,28 @@ export class WorkspaceIndex implements vscode.Disposable {
     }
   }
 
+  /** Re-reads the markers of a file; true if it has, or had, any. */
+  private updateMarkers(uri: vscode.Uri, fileName: string, text: string): boolean {
+    const key = uri.toString();
+    const relativePath = vscode.workspace.asRelativePath(uri, false);
+    const syntax = isIgnoredPath(relativePath) ? undefined : commentSyntaxFor(fileName);
+    const markers = syntax ? scanUseCaseMarkers(text, syntax) : [];
+    if (markers.length === 0) {
+      return this.markerFiles.delete(key);
+    }
+    this.markerFiles.set(key, {
+      uri,
+      markers,
+      lineStarts: computeLineStarts(text),
+      isTestSource: isTestSourcePath(relativePath),
+    });
+    return true;
+  }
+
   private remove(uri: vscode.Uri): void {
     const key = uri.toString();
-    if (this.specs.delete(key) || this.javas.delete(key)) {
+    const removed = [this.specs, this.javas, this.markerFiles].map((files) => files.delete(key));
+    if (removed.includes(true)) {
       this.fireChanged();
     }
   }
@@ -251,6 +305,29 @@ export class WorkspaceIndex implements vscode.Disposable {
     return dedupeLocations(targets);
   }
 
+  /**
+   * The spec locations of comment references: the rule or flow each one names,
+   * falling back to the spec file(s) when that site does not exist.
+   */
+  specTargetsForReferences(references: UseCaseReference[]): vscode.Location[] {
+    return dedupeLocations(references.flatMap((reference) => this.specTargetsForReference(reference)));
+  }
+
+  private specTargetsForReference({ useCaseId, qualifier }: UseCaseReference): vscode.Location[] {
+    const site =
+      qualifier === undefined
+        ? undefined
+        : isBusinessRuleId(qualifier)
+          ? this.businessRuleLocation(useCaseId, qualifier)
+          : this.scenarioLocation(useCaseId, qualifier);
+    if (site) {
+      return [site];
+    }
+    return this.specFilesFor(useCaseId).map(
+      (spec) => new vscode.Location(spec.uri, new vscode.Position(0, 0)),
+    );
+  }
+
   private findSpecLine(useCaseId: string, pattern: RegExp): vscode.Location | undefined {
     for (const spec of this.specFilesFor(useCaseId)) {
       const lines = spec.content.split('\n');
@@ -261,6 +338,30 @@ export class WorkspaceIndex implements vscode.Disposable {
       }
     }
     return undefined;
+  }
+
+  // ---- implementation marker queries --------------------------------------
+
+  /**
+   * The Use Case markers in the comments of the workspace, test sources
+   * excluded (tests link through `@UseCase`). With a [qualifier] only the
+   * markers of that rule or flow, without one every marker of the Use Case.
+   */
+  implementationMarkers(useCaseId: string, qualifier?: string): ImplementationMarkerRef[] {
+    const files = [...this.markerFiles.values()]
+      .filter((file) => !file.isTestSource)
+      .sort((a, b) => a.uri.path.localeCompare(b.uri.path));
+    return files.flatMap((file) =>
+      file.markers
+        .filter((marker) => referenceMatches(marker.reference, useCaseId, qualifier))
+        .map((marker) => ({
+          marker,
+          location: new vscode.Location(
+            file.uri,
+            new vscode.Range(toPosition(file, marker.start), toPosition(file, marker.end)),
+          ),
+        })),
+    );
   }
 
   // ---- test method queries ------------------------------------------------

@@ -34,12 +34,17 @@ Two layers, split so the convention logic stays unit-testable without a VS Code 
       must be mirrored in the IntelliJ plugin.
     - `javaScan.ts`: regex-based `@UseCase` scanner (VS Code has no Java PSI). Handles balanced parens, string
       escapes, and skips sibling annotations to find the annotated method name.
+    - `commentScan.ts`: comment scanner per file extension (VS Code has no PSI comments), finds the Use Case markers of
+      the implementation (`// UC-XXX BR-YYY: …`) through `locateUseCaseReferences` in `patterns.ts`. Also decides by
+      workspace-relative path what counts as a test source (the stand-in for IntelliJ's test scope) or build output.
 - **`src/`** — the VS Code layer:
-    - `workspaceIndex.ts`: in-memory index of all `.md`/`.java` files, kept fresh by a `FileSystemWatcher` plus
+    - `workspaceIndex.ts`: in-memory index of all `.md`/`.java` files and the comment markers of code files, kept fresh by a `FileSystemWatcher` plus
       `onDidChangeTextDocument` (dirty buffers win over disk). All queries (`testMethodsFor*`, `specFilesFor`,
       `scenarioLocation`, …) mirror the IntelliJ `UseCaseIndex` API.
-    - `providers.ts`: CodeLens + Definition + Reference providers for both languages. `specSiteTargets` is the single
-      resolution point for Markdown sites so all three providers stay in sync.
+    - `providers.ts`: CodeLens + Definition + Reference providers for Java, Markdown and code comments.
+      `specSiteTargets` is the single resolution point for Markdown sites so all three providers stay in sync;
+      `implementationSite` (`specSites.ts`) is the same for the spec-to-marker lens, a port of the IntelliJ
+      `SpecToImplementationLineMarkerProvider`. The index keeps only the markers of code files, not their text.
     - `diagnostics.ts`: the "Use Case ID has no matching spec" inspection.
     - `diagramView.ts`: the `aiup.diagram` webview view; renders Mermaid from a bundled `media/mermaid.min.js`
       (copied from node_modules by `esbuild.mjs` — never committed).
