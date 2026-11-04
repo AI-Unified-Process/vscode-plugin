@@ -4,9 +4,10 @@ name: Release
 # extension to the VS Code Marketplace. The version-bump commit carries
 # "[skip ci]" so it does not trigger another release.
 #
-# Requires the repository secret VSCE_PAT: an Azure DevOps Personal Access
-# Token (Organization: "All accessible organizations", Scope: Marketplace >
-# Manage) for the "aiup" publisher.
+# Publishes with Marketplace Trusted Publishing (OIDC), so no token is stored.
+# Requires a Trusted Publishing policy on the "aiup" publisher for
+# AI-Unified-Process/vscode-plugin, workflow release.yml, no environment.
+# Renaming this file or adding an environment means updating that policy.
 
 on:
   push:
@@ -16,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: release
@@ -49,9 +51,7 @@ jobs:
           npm version patch -m "chore: release v%s [skip ci]"
 
       - name: Publish to Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx --yes @vscode/vsce publish -p "$VSCE_PAT"
+        run: npx --yes @vscode/vsce publish --oidc
 
       - name: Push version bump and tag
         run: git push --follow-tags
