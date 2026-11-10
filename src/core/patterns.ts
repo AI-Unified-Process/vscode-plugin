@@ -38,9 +38,9 @@ export const ACTIVITY_USE_CASE_REF = /^\s*([SB]?UC-[A-Za-z0-9_-]*[A-Za-z0-9])/;
  * inside `SUC-002` or `foo-UC-002`.
  */
 export const USE_CASE_REFERENCE =
-  /(?<![\p{L}\p{N}_-])([SB]?UC-[A-Za-z0-9_-]*[A-Za-z0-9])(?:[ \t]+((?:BR|GR)-[A-Za-z0-9_-]*[A-Za-z0-9]|[A-Z]\d+|\d+[a-z])\b)?/gu;
+  /(?<![\p{L}\p{N}_-])([SB]?UC-[A-Za-z0-9_-]*[A-Za-z0-9])(?:[ \t]+(BR-[A-Za-z0-9_-]*[A-Za-z0-9]|[A-Z]\d+|\d+[a-z])\b)?/gu;
 
-const BUSINESS_RULE_ID = /^(?:BR|GR)-.+$/;
+const BUSINESS_RULE_ID = /^BR-.+$/;
 
 /**
  * Heading of the main flow section: `Main Success Scenario` (English),
@@ -60,10 +60,9 @@ export const ALT_FLOW_HEADING = /^#{1,6}\s+([A-Z]\d+|\d+[a-z])\b/;
 
 /**
  * A business-rule declaration site: a heading (`### BR-001 …`) or a bold
- * bullet item (`- **GR-008:** …`, the German spec style). Accepts the
- * `BR-` and `GR-` (Geschäftsregel) prefixes.
+ * bullet item (`- **BR-008:** …`).
  */
-export const BUSINESS_RULE_SITE = /^(?:#{1,6}\s+|\s*[-*]\s+\*\*)((?:BR|GR)-[A-Za-z0-9_-]+)\b/;
+export const BUSINESS_RULE_SITE = /^(?:#{1,6}\s+|\s*[-*]\s+\*\*)(BR-[A-Za-z0-9_-]+)\b/;
 
 /**
  * The code prefix of a scenario label: `A1` in "A1: Missing Description"

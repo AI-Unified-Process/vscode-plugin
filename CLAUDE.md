@@ -70,6 +70,6 @@ Two layers, split so the convention logic stays unit-testable without a VS Code 
 
 Same as the IntelliJ plugin (see `../intellij-plugin/CLAUDE.md`): annotation type `UseCase` with `id` / `scenario` /
 `businessRules`; IDs `UC-XXX` or `SUC-XXX` / `BUC-XXX`; specs matched by file name, `**Use Case ID:**` body line, or
-H1 title; business rules as `### BR-XXX` headings or `- **GR-XXX:** …` bullets; main flow headings in English and
+H1 title; business rules as `### BR-XXX` headings or `- **BR-XXX:** …` bullets; main flow headings in English and
 German; alt flows coded `A1` or step-coded `3a`. When changing any pattern, change it in `src/core/patterns.ts` only
 and mirror the change in the IntelliJ plugin's `UseCaseIndex`.

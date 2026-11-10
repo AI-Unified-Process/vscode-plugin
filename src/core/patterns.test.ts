@@ -80,9 +80,9 @@ describe('classifySpecLine', () => {
       kind: 'businessRule',
       brId: 'BR-001',
     });
-    expect(classifySpecLine('- **GR-008:** Inaktive Kunden werden nicht angezeigt.')).toEqual({
+    expect(classifySpecLine('- **BR-008:** Inaktive Kunden werden nicht angezeigt.')).toEqual({
       kind: 'businessRule',
-      brId: 'GR-008',
+      brId: 'BR-008',
     });
     expect(classifySpecLine('# View Veterinarians')).toEqual({ kind: 'title' });
     expect(classifySpecLine('## Main Success Scenario')).toEqual({ kind: 'mainScenario' });
@@ -114,7 +114,7 @@ describe('use case references', () => {
 
   it('does not match inside a longer ID', () => {
     expect(references('foo-UC-002 XUC-002')).toEqual([]);
-    expect(references('SUC-002 GR-008: Regel')).toEqual([{ useCaseId: 'SUC-002', qualifier: 'GR-008' }]);
+    expect(references('SUC-002 BR-008: Regel')).toEqual([{ useCaseId: 'SUC-002', qualifier: 'BR-008' }]);
   });
 
   it('takes no word after the ID for a qualifier', () => {
@@ -140,7 +140,7 @@ describe('use case references', () => {
   it('labels and classifies references', () => {
     expect(referenceLabel({ useCaseId: 'UC-002' })).toBe('UC-002');
     expect(referenceLabel({ useCaseId: 'UC-002', qualifier: 'A2' })).toBe('UC-002 A2');
-    expect(isBusinessRuleId('GR-008')).toBe(true);
+    expect(isBusinessRuleId('BR-008')).toBe(true);
     expect(isBusinessRuleId('A2')).toBe(false);
   });
 
@@ -164,9 +164,9 @@ describe('implementationSite', () => {
       useCaseId: 'UC-002',
       qualifier: 'BR-001',
     });
-    expect(implementationSite('- **GR-008:** Regel', 'UC-001', false)).toEqual({
+    expect(implementationSite('- **BR-008:** Regel', 'UC-001', false)).toEqual({
       useCaseId: 'UC-001',
-      qualifier: 'GR-008',
+      qualifier: 'BR-008',
     });
     expect(implementationSite('### 3a. Keine Treffer', 'UC-001', false)).toEqual({
       useCaseId: 'UC-001',

@@ -104,7 +104,7 @@ In Markdown specs:
   attribute (or one of those labels as the `scenario` value).
 * `### A1: ...` or `### 3a. ...` (alternative-flow headings coded as `<Letter><Digits>` or `<Step><letter>`) jumps to
   test methods whose `scenario` starts with that code.
-* `### BR-XXX` business rule headings — or `- **GR-XXX:** …` bullet items in the German style — jump to test methods
+* `### BR-XXX` business rule headings — or `- **BR-XXX:** …` bullet items — jump to test methods
   that reference that rule via `businessRules = {"BR-XXX"}`, scoped to the Use Case declared by the spec file
   (rule ids are unique only within a UC).
 
@@ -112,7 +112,7 @@ A second **N implementation markers** lens on the same lines jumps to the code c
 (test sources excluded, they link through `@UseCase`; they are told by path, such as `src/test/`, `tests/`,
 `*Test.java`, `*IT.java` or `*.spec.ts`):
 
-* `### BR-XXX` / `- **GR-XXX:** …` jumps to the `UC-XXX BR-XXX` markers of that Use Case, `### A1: ...` / `### 3a. ...`
+* `### BR-XXX` / `- **BR-XXX:** …` jumps to the `UC-XXX BR-XXX` markers of that Use Case, `### A1: ...` / `### 3a. ...`
   to the `UC-XXX A1` / `UC-XXX 3a` markers.
 * `**Use Case ID:** UC-XXX` — or the H1 title `# UC-XXX: …` when the spec has no such line — jumps to every marker
   of the Use Case.
@@ -161,7 +161,7 @@ and with the German AI Unified Process spec style, which declares the ID in the 
 
 ## Geschäftsregeln
 
-- **GR-001:** Inaktive Kunden werden standardmässig nicht angezeigt.
+- **BR-001:** Inaktive Kunden werden standardmässig nicht angezeigt.
 ```
 
 Use Case IDs may be plain `UC-XXX` or the `SUC-XXX` / `BUC-XXX` variants (System / Business Use Case). Spec files are

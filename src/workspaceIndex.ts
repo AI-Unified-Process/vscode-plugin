@@ -264,7 +264,7 @@ export class WorkspaceIndex implements vscode.Disposable {
     return this.findSpecLine(useCaseId, pattern);
   }
 
-  /** The location of a `### BR-XXX` heading or `- **GR-XXX:** …` bullet. */
+  /** The location of a `### BR-XXX` heading or `- **BR-XXX:** …` bullet. */
   businessRuleLocation(useCaseId: string, businessRuleId: string): vscode.Location | undefined {
     const pattern = new RegExp(`^(?:#{1,6}\\s+|\\s*[-*]\\s+\\*\\*)${escapeRegExp(businessRuleId)}\\b`);
     return this.findSpecLine(useCaseId, pattern);
