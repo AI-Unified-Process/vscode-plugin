@@ -8,4 +8,9 @@ declare module 'bpmn-js-properties-panel' {
   export const BpmnPropertiesProviderModule: unknown;
 }
 
+/* bpmn-js-create-append-anything ships no type declarations either. */
+declare module 'bpmn-js-create-append-anything' {
+  export const CreateAppendAnythingModule: unknown;
+}
+
 declare module '*.css';

@@ -62,7 +62,10 @@ render on the PlantUML server configured in **`aiup.plantuml.server`**; that sen
 ### BPMN editor
 
 `.bpmn` files (BPMN 2.0 process models) open in the same bpmn-js modeler the AI Unified Process Studio and the
-IntelliJ plugin use: palette and canvas next to the properties panel of the selected element. The XML stays available
+IntelliJ plugin use: palette and canvas next to the properties panel of the selected element. Elements the palette
+does not show — user, service and script tasks, typed events, subprocesses and every other BPMN element — come from
+the searchable "Create element" menu (the palette's "…" entry, key N) or, attached to the selected element, from
+"Append element" in its context pad (key A). The XML stays available
 through **Reopen Editor With… → Text Editor**; both edit the same document, so an edit in the diagram is an ordinary
 change of the file (undo and redo go through VS Code), and an edit of the XML is picked up by the diagram. Opening a
 file imports it unchanged — it is only rewritten once you edit the diagram. The editor runs from files bundled with

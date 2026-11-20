@@ -1,6 +1,7 @@
 import Modeler from 'bpmn-js/lib/Modeler';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
+import { CreateAppendAnythingModule } from 'bpmn-js-create-append-anything';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
@@ -11,8 +12,9 @@ import { activityUseCaseId } from '../src/core/patterns';
 /*
  * The BPMN editor webview, the same bpmn-js modeler the AI Unified Process Studio and
  * the IntelliJ plugin use: palette and canvas next to the properties panel of the
- * selected element; for a read-only file the navigable viewer without palette and
- * panel. The text document holds the BPMN 2.0 XML: a value set by the extension is
+ * selected element, with the searchable "Create element" (palette, N) and "Append
+ * element" (context pad, A) menus for every BPMN element the palette does not show;
+ * for a read-only file the navigable viewer without palette and panel. The text document holds the BPMN 2.0 XML: a value set by the extension is
  * imported unchanged, and only an edit of the user serializes the model again and
  * reports it — importing fires no command, so opening a file never marks it dirty.
  * Undo and redo belong to the text document (VS Code's undo stack), not to bpmn-js.
@@ -75,7 +77,12 @@ function init(xml: string, readOnly: boolean): void {
     const modeler = new Modeler({
       container: canvas,
       propertiesPanel: { parent: panel },
-      additionalModules: [BpmnPropertiesPanelModule, BpmnPropertiesProviderModule, UseCaseContextPadModule],
+      additionalModules: [
+        BpmnPropertiesPanelModule,
+        BpmnPropertiesProviderModule,
+        CreateAppendAnythingModule,
+        UseCaseContextPadModule,
+      ],
     } as any);
     modeler.on('commandStack.changed', (event: { trigger?: string }) => {
       // clearing the stack on an import is no edit of the user
