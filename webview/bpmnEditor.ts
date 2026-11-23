@@ -21,7 +21,10 @@ import { activityUseCaseId } from '../src/core/patterns';
  * An activity named after a use case ("UC-004 Find Owners") opens its spec: from the
  * context pad in the modeler, by a click in the viewer.
  *
- * Messages in: init {xml, readOnly}, setXml {xml}, zoom {step}, toggleProperties,
+ * The extension collapses the properties panel from the editor title bar; the choice applies
+ * to every BPMN editor, so it arrives with init and as showProperties.
+ *
+ * Messages in: init {xml, readOnly, propertiesVisible}, setXml {xml}, zoom {step}, showProperties {visible},
  * export {id, format}.
  * Messages out: ready, changed {xml}, openUseCase {id}, exported {id, data},
  * exportFailed {id, message}.
@@ -32,16 +35,14 @@ type Viewer = Modeler | NavigatedViewer;
 type ZoomStep = 'in' | 'out' | 'fit';
 
 type Inbound =
-  | { type: 'init'; xml: string; readOnly: boolean }
+  | { type: 'init'; xml: string; readOnly: boolean; propertiesVisible: boolean }
   | { type: 'setXml'; xml: string }
   | { type: 'zoom'; step: ZoomStep }
-  | { type: 'toggleProperties' }
+  | { type: 'showProperties'; visible: boolean }
   | { type: 'export'; id: number; format: 'svg' | 'png' };
 
 declare function acquireVsCodeApi(): {
   postMessage(message: unknown): void;
-  getState(): { propertiesHidden?: boolean } | undefined;
-  setState(state: { propertiesHidden?: boolean }): void;
 };
 
 const vscode = acquireVsCodeApi();
@@ -57,11 +58,9 @@ let debounce: number | undefined;
 const canvas = document.getElementById('canvas')!;
 const panel = document.getElementById('properties')!;
 const errorBar = document.getElementById('error')!;
-// kept in the webview state, so a collapsed panel stays collapsed when the editor is reopened
-panel.hidden = vscode.getState()?.propertiesHidden === true;
-
-function init(xml: string, readOnly: boolean): void {
+function init(xml: string, readOnly: boolean, propertiesVisible: boolean): void {
   currentXml = xml ?? '';
+  showProperties(propertiesVisible);
   if (viewer) {
     void importXml();
     return;
@@ -209,11 +208,10 @@ function zoom(step: ZoomStep): void {
   }
 }
 
-/** Collapses the properties panel to give the canvas the full width, or shows it again. */
-function toggleProperties(): void {
-  if (!panel.isConnected) return;
-  panel.hidden = !panel.hidden;
-  vscode.setState({ ...vscode.getState(), propertiesHidden: panel.hidden });
+/** Shows the properties panel, or collapses it to give the canvas the full width. */
+function showProperties(visible: boolean): void {
+  if (!panel.isConnected || panel.hidden === !visible) return;
+  panel.hidden = !visible;
   (viewer?.get('canvas') as any)?.resized();
 }
 
@@ -279,7 +277,7 @@ window.addEventListener('message', (event: MessageEvent<Inbound>) => {
   const message = event.data;
   switch (message?.type) {
     case 'init':
-      init(message.xml, message.readOnly);
+      init(message.xml, message.readOnly, message.propertiesVisible);
       break;
     case 'setXml':
       setXml(message.xml);
@@ -287,8 +285,8 @@ window.addEventListener('message', (event: MessageEvent<Inbound>) => {
     case 'zoom':
       zoom(message.step);
       break;
-    case 'toggleProperties':
-      toggleProperties();
+    case 'showProperties':
+      showProperties(message.visible);
       break;
     case 'export':
       void exportDiagram(message.id, message.format);

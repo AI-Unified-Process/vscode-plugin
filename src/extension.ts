@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const diagnostics = new SpecDiagnostics(index);
   const diagramView = new DiagramViewProvider(context.extensionUri);
   const plantUmlPreviews = new PlantUmlPreviewManager(context.extensionUri, context.globalState);
-  const bpmnEditors = new BpmnEditorProvider(context.extensionUri, index);
+  const bpmnEditors = new BpmnEditorProvider(context.extensionUri, index, context.globalState);
 
   /** The `.puml` file a preview command applies to: its argument, else the active editor. */
   const plantUmlTarget = (uri?: vscode.Uri): vscode.Uri | undefined =>
@@ -67,7 +67,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('aiup.zoomInBpmn', () => bpmnEditors.zoomActive('in')),
     vscode.commands.registerCommand('aiup.zoomOutBpmn', () => bpmnEditors.zoomActive('out')),
     vscode.commands.registerCommand('aiup.zoomBpmnToFit', () => bpmnEditors.zoomActive('fit')),
-    vscode.commands.registerCommand('aiup.toggleBpmnProperties', () => bpmnEditors.togglePropertiesActive()),
+    vscode.commands.registerCommand('aiup.toggleBpmnProperties', () => bpmnEditors.toggleProperties()),
+    vscode.commands.registerCommand('aiup.hideBpmnProperties', () => bpmnEditors.showProperties(false)),
+    vscode.commands.registerCommand('aiup.showBpmnProperties', () => bpmnEditors.showProperties(true)),
     vscode.commands.registerCommand('aiup.exportBpmnSvg', () => bpmnEditors.exportActive('svg')),
     vscode.commands.registerCommand('aiup.exportBpmnPng', () => bpmnEditors.exportActive('png')),
     vscode.commands.registerCommand('aiup.previewPlantUml', (uri?: vscode.Uri) => {

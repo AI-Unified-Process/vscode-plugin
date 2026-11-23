@@ -72,7 +72,8 @@ file imports it unchanged — it is only rewritten once you edit the diagram. Th
 the extension; nothing is loaded from the network.
 
 The editor title bar zooms the diagram in and out and fits it to the editor (`Ctrl`/`Cmd` + scroll and pinch zoom as
-well), collapses the properties panel to give the diagram the full width (and shows it again), and exports the shown diagram, unsaved edits included, as **SVG** or as **PNG** (twice the size, on
+well), collapses the properties panel to give the diagram the full width (and shows it again — the choice is remembered
+and applies to every BPMN editor, as in the IntelliJ plugin), and exports the shown diagram, unsaved edits included, as **SVG** or as **PNG** (twice the size, on
 white).
 
 An activity whose name starts with a Use Case ID — `UC-004 Find Owners by Last Name`, `UC-001: Kunde suchen`, or the

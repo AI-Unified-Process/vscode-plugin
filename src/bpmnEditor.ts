@@ -4,6 +4,10 @@ import type { WorkspaceIndex } from './workspaceIndex';
 
 const VIEW_TYPE = 'aiup.bpmnEditor';
 const TEXT_SYNC_DELAY_MS = 300;
+/** Whether the properties panel is shown; one choice for every BPMN editor, as in the IntelliJ plugin. */
+const PROPERTIES_VISIBLE_KEY = 'aiup.bpmn.propertiesVisible';
+/** Context key that switches the title bar between "Hide" and "Show Properties Panel". */
+const PROPERTIES_VISIBLE_CONTEXT = 'aiup.bpmnPropertiesVisible';
 
 type ExportFormat = 'svg' | 'png';
 type ZoomStep = 'in' | 'out' | 'fit';
@@ -33,10 +37,13 @@ export class BpmnEditorProvider implements vscode.CustomTextEditorProvider {
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly index: WorkspaceIndex,
-  ) {}
+    private readonly state: vscode.Memento,
+  ) {
+    void vscode.commands.executeCommand('setContext', PROPERTIES_VISIBLE_CONTEXT, this.propertiesVisible);
+  }
 
   resolveCustomTextEditor(document: vscode.TextDocument, panel: vscode.WebviewPanel): void {
-    const editor = new BpmnEditor(document, panel, this.extensionUri, this.index);
+    const editor = new BpmnEditor(document, panel, this.extensionUri, this.index, () => this.propertiesVisible);
     this.editors.add(editor);
     panel.onDidDispose(() => this.editors.delete(editor));
   }
@@ -46,9 +53,22 @@ export class BpmnEditorProvider implements vscode.CustomTextEditorProvider {
     this.activeEditor()?.zoom(step);
   }
 
-  /** Hides or shows the properties panel of the active BPMN editor. */
-  togglePropertiesActive(): void {
-    this.activeEditor()?.toggleProperties();
+  private get propertiesVisible(): boolean {
+    return this.state.get<boolean>(PROPERTIES_VISIBLE_KEY, true);
+  }
+
+  /**
+   * Shows or collapses the properties panel. The choice is remembered and applies to every
+   * BPMN editor, the open ones and the ones opened later, as in the IntelliJ plugin.
+   */
+  showProperties(visible: boolean): void {
+    void this.state.update(PROPERTIES_VISIBLE_KEY, visible);
+    void vscode.commands.executeCommand('setContext', PROPERTIES_VISIBLE_CONTEXT, visible);
+    this.editors.forEach((editor) => editor.showProperties(visible));
+  }
+
+  toggleProperties(): void {
+    this.showProperties(!this.propertiesVisible);
   }
 
   /** Exports the diagram of the active BPMN editor, unsaved edits included. */
@@ -79,6 +99,7 @@ class BpmnEditor {
     private readonly panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
     private readonly index: WorkspaceIndex,
+    private readonly propertiesVisible: () => boolean,
   ) {
     const media = vscode.Uri.joinPath(extensionUri, 'media');
     panel.webview.options = { enableScripts: true, localResourceRoots: [media] };
@@ -104,8 +125,8 @@ class BpmnEditor {
     void this.panel.webview.postMessage({ type: 'zoom', step });
   }
 
-  toggleProperties(): void {
-    void this.panel.webview.postMessage({ type: 'toggleProperties' });
+  showProperties(visible: boolean): void {
+    void this.panel.webview.postMessage({ type: 'showProperties', visible });
   }
 
   async export(format: ExportFormat): Promise<void> {
@@ -141,7 +162,12 @@ class BpmnEditor {
       case 'ready': {
         this.syncedText = this.document.getText();
         const readOnly = vscode.workspace.fs.isWritableFileSystem(this.document.uri.scheme) === false;
-        void this.panel.webview.postMessage({ type: 'init', xml: this.syncedText, readOnly });
+        void this.panel.webview.postMessage({
+          type: 'init',
+          xml: this.syncedText,
+          readOnly,
+          propertiesVisible: this.propertiesVisible(),
+        });
         break;
       }
       case 'changed':
